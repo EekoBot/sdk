@@ -55,9 +55,3 @@ jobs:
           else
             pnpm publish --provenance --no-git-checks
           fi
-
-      - name: Upload release asset
-        if: github.event_name == 'release'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.event.release.tag_name }} eeko-sdk-*.tgz --clobber
