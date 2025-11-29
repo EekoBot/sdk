@@ -1,115 +1,65 @@
 # @eeko/sdk
 
-Official TypeScript SDK for building Eeko widgets and overlays.
+TypeScript types for the Eeko widget runtime. This package provides type definitions for `window.eekoSDK`, enabling type-safe development of streaming overlays and widgets.
+
+The SDK runtime is injected automatically by the Eeko overlay system in production or by `@eeko/cli` during local development. This package contains no runtime code.
 
 ## Installation
 
 ```bash
-pnpm add @eeko/sdk
+pnpm add -D @eeko/sdk
 ```
 
 ## Usage
 
-This package provides TypeScript types for the Eeko SDK. The actual SDK implementation (`window.eekoSDK`) is provided by either:
-
-- **Production**: The Eeko overlay system (automatically injected)
-- **Development**: The `@eeko/cli` dev server
-
-### Basic Example
-
 ```typescript
-import type { IEekoSDK, ChatMessagePayload, ComponentTriggerPayload } from '@eeko/sdk';
+import type { IEekoSDK, ComponentTriggerPayload, ChatMessagePayload } from '@eeko/sdk';
 
-// TypeScript will recognize window.eekoSDK
 declare const eekoSDK: IEekoSDK;
 
-// Subscribe to chat messages
-eekoSDK.on('chat_message', (message: ChatMessagePayload) => {
-  console.log(`${message.user.displayName}: ${message.message.text}`);
-
-  if (message.userStatus?.isModerator) {
-    console.log('Message from a mod!');
-  }
-});
-
-// Subscribe to triggers (donations, follows, etc.)
 eekoSDK.on('component_trigger', (data: ComponentTriggerPayload) => {
   console.log(`${data.username} triggered with amount: ${data.amount}`);
 });
 
-// Get current state
-const state = eekoSDK.getState();
-console.log('Global config:', state.globalConfig);
+eekoSDK.on('chat_message', (msg: ChatMessagePayload) => {
+  console.log(`${msg.user.displayName}: ${msg.message.text}`);
+});
 
-// Check if SDK is ready
-if (eekoSDK.isReady()) {
-  console.log('SDK is ready!');
-}
+const state = eekoSDK.getState();
 ```
 
-### Event Types
+## Events
 
-| Event | Description |
-|-------|-------------|
-| `component_trigger` | Alert/widget activated (donation, follow, etc.) |
-| `component_update` | State update for interactive widgets |
-| `component_sync` | Full state synchronization |
-| `component_mount` | Component initialized |
-| `component_unmount` | Component being destroyed |
-| `chat_message` | Chat message from any platform |
-| `variable_updated` | Configuration value changed |
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `component_trigger` | `ComponentTriggerPayload` | Alert activated (donation, follow, subscription) |
+| `component_update` | `ComponentUpdatePayload` | State update for persistent widgets |
+| `component_sync` | `ComponentUpdatePayload` | Full state synchronization |
+| `component_mount` | `ComponentMountPayload` | Widget initialized |
+| `component_unmount` | `ComponentUnmountPayload` | Widget destroyed |
+| `chat_message` | `ChatMessagePayload` | Chat message from any platform |
+| `variable_updated` | `VariableUpdatedPayload` | Configuration changed |
 
-### Type-Safe Event Handlers
+## API
+
+### IEekoSDK
 
 ```typescript
-import { EEKO_EVENTS } from '@eeko/sdk';
-
-// Use constants for event names
-eekoSDK.on(EEKO_EVENTS.CHAT_MESSAGE, (msg) => {
-  // msg is typed as ChatMessagePayload
-});
-
-eekoSDK.on(EEKO_EVENTS.COMPONENT_TRIGGER, (data) => {
-  // data is typed as ComponentTriggerPayload
-});
+interface IEekoSDK {
+  on<E extends EventType>(event: E, handler: EventHandler<EekoEventMap[E]>): void;
+  off<E extends EventType>(event: E, handler: EventHandler<EekoEventMap[E]>): void;
+  getState(): EekoSDKState;
+  isReady(): boolean;
+}
 ```
 
 ## Local Development
 
-For local widget development, use `@eeko/cli`:
-
 ```bash
 pnpm add -D @eeko/cli
-
-# Start dev server
 pnpm eeko dev
-
-# Send test events
-pnpm eeko test trigger --username="TestUser" --amount=5
-pnpm eeko test chat --message="Hello world!"
+pnpm eeko test trigger --username="Test" --amount=5
 ```
-
-## API Reference
-
-### `IEekoSDK`
-
-The main SDK interface available on `window.eekoSDK`.
-
-#### Methods
-
-- `on(event, handler)` - Subscribe to an event
-- `off(event, handler)` - Unsubscribe from an event
-- `getState()` - Get current SDK state
-- `isReady()` - Check if SDK is initialized
-
-### Payload Types
-
-- `ComponentTriggerPayload` - Trigger event data
-- `ComponentUpdatePayload` - State update data
-- `ChatMessagePayload` - Chat message data
-- `ComponentMountPayload` - Mount lifecycle data
-- `ComponentUnmountPayload` - Unmount lifecycle data
-- `VariableUpdatedPayload` - Variable change data
 
 ## License
 
