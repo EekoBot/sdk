@@ -56,19 +56,8 @@ jobs:
             pnpm publish --provenance --no-git-checks
           fi
 
-      - name: Create release asset
-        if: github.event_name == 'release'
-        run: |
-          pnpm pack
-          mv eeko-sdk-*.tgz eeko-sdk-${{ github.event.release.tag_name }}.tgz
-
       - name: Upload release asset
         if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./eeko-sdk-${{ github.event.release.tag_name }}.tgz
-          asset_name: eeko-sdk-${{ github.event.release.tag_name }}.tgz
-          asset_content_type: application/gzip
+        run: gh release upload ${{ github.event.release.tag_name }} eeko-sdk-*.tgz --clobber

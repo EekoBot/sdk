@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-11-29
+
+### Fixed
+- Fix release asset upload in publish workflow
+
 ## [0.1.1] - 2025-11-29
 
 ### Fixed
@@ -25,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Event constants (`EEKO_EVENTS`)
 - CI/CD workflows for testing and npm publishing
 
-[Unreleased]: https://github.com/EekoBot/sdk/compare/0.1.1...HEAD
+[Unreleased]: https://github.com/EekoBot/sdk/compare/0.1.2...HEAD
+[0.1.2]: https://github.com/EekoBot/sdk/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/EekoBot/sdk/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/EekoBot/sdk/releases/tag/0.1.0
