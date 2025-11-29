@@ -1,6 +1,6 @@
 {
   "name": "@eeko/sdk",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Official SDK for building Eeko widgets and overlays",
   "type": "module",
   "main": "./dist/index.js",

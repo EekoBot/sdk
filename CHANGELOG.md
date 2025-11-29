@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2025-11-29
+## [0.1.0] - 2025-11-29
 
 ### Added
 - Core SDK types and interfaces (`IEekoSDK`, `IEekoSDKInternal`)
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Variable update payloads
 - Error classes for SDK errors
 - Event constants (`EEKO_EVENTS`)
+- CI/CD workflows for testing and npm publishing
 
-[Unreleased]: https://github.com/EekoBot/sdk/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/EekoBot/sdk/releases/tag/v1.0.0
+[Unreleased]: https://github.com/EekoBot/sdk/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/EekoBot/sdk/releases/tag/0.1.0
