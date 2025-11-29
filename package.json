@@ -1,0 +1,63 @@
+{
+  "name": "@eeko/sdk",
+  "version": "1.0.0",
+  "description": "Official SDK for building Eeko widgets and overlays",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./payloads": {
+      "types": "./dist/payloads/index.d.ts",
+      "import": "./dist/payloads/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": [
+    "eeko",
+    "streaming",
+    "overlay",
+    "widget",
+    "sdk",
+    "twitch",
+    "youtube",
+    "kick",
+    "tiktok"
+  ],
+  "author": "Eeko",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EekoBot/sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/EekoBot/sdk/issues"
+  },
+  "homepage": "https://github.com/EekoBot/sdk#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

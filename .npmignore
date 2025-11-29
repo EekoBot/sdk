@@ -1,0 +1,50 @@
+# Source files (we only publish dist/)
+src/
+*.ts
+!*.d.ts
+
+# Development files
+tsconfig.json
+tsup.config.ts
+.vscode/
+.idea/
+
+# Tests and coverage
+coverage/
+*.spec.ts
+*.test.ts
+__tests__/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Documentation (except README)
+docs/
+*.md
+!README.md
+!CHANGELOG.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+.cache/
+.temp/
+*.tsbuildinfo
