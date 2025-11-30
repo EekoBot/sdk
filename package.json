@@ -1,6 +1,6 @@
 {
   "name": "@eeko/sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Official SDK for building Eeko widgets and overlays",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,6 +14,14 @@
     "./payloads": {
       "types": "./dist/payloads/index.d.ts",
       "import": "./dist/payloads/index.js"
+    },
+    "./template": {
+      "types": "./dist/template/index.d.ts",
+      "import": "./dist/template/index.js"
+    },
+    "./template/node": {
+      "types": "./dist/template/node.d.ts",
+      "import": "./dist/template/node.js"
     }
   },
   "files": [
@@ -30,6 +38,7 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
+    "@types/node": "^24.10.1",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0"
   },
