@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-17
+
+### Added
+- `@eeko/sdk/runtime-bridge` subpath export: a self-contained bridge runtime
+  used by both the production widget-host worker (parent-postMessage transport)
+  and `@eeko/cli` (WebSocket transport). Embedders opt into dev mode by
+  setting `window.__EEKO_DEV__ = { wsUrl }` before the bridge loads.
+
+## [0.2.0] - 2026-04-15
+
+### Changed
+- **Breaking:** `IEekoSDKInternal` is no longer exported from the package entry.
+  The `_emit`, `_setState`, and `_initialize` methods are host-runtime
+  concerns and must not be part of the public surface that widget authors
+  type against. Adapters (overlay runtime, dev CLI) should declare the
+  extended shape locally.
+
 ## [0.1.3] - 2025-11-29
 
 ### Changed

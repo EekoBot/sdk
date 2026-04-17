@@ -22,12 +22,17 @@
  */
 
 // Core types
+//
+// `IEekoSDKInternal` is intentionally NOT re-exported. The `_emit/_setState/
+// _initialize` methods are host-runtime concerns (the overlay adapter uses
+// them to drive the SDK from Pusher / postMessage) and must not be part of
+// the public surface that widget authors type against. Adapters that need
+// the shape should declare it locally.
 export type {
   EventType,
   EventHandler,
   EekoSDKState,
   IEekoSDK,
-  IEekoSDKInternal,
   EekoEventMap,
 } from './types'
 
@@ -73,4 +78,4 @@ export {
 /**
  * SDK Version
  */
-export const VERSION = '1.0.0'
+export const VERSION = '0.3.0'
