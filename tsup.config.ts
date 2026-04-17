@@ -6,6 +6,7 @@ export default defineConfig({
     'src/payloads/index.ts',
     'src/template/index.ts',
     'src/template/node.ts',
+    'src/runtime-bridge.ts',
   ],
   format: ['esm'],
   dts: true,
