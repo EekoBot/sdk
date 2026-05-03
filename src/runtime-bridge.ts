@@ -44,6 +44,7 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
   var EVENT_TYPES = [
     'component_trigger',
     'component_update',
+    'component_dismiss',
     'component_sync',
     'component_mount',
     'component_unmount',
