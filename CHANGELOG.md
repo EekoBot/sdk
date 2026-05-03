@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-03
+
+### Changed
+- **Breaking:** `chat_message`, `component_trigger`, `component_update`,
+  `component_dismiss`, `component_sync`, and `variable_updated` payloads now
+  arrive as a `{type, context, payload}` envelope (symmetric with the
+  inbound `TriggerCandidate` shape used upstream). Widget code that was
+  destructuring the flat payload directly should now read from
+  `envelope.payload` (and `envelope.context` for routing fields):
+  ```ts
+  // Before
+  sdk.on('component_trigger', (data) => doStuff(data.component_id, data.data))
+  // After
+  sdk.on('component_trigger', (envelope) => doStuff(envelope.context.componentId, envelope.payload.data))
+  ```
+  The canonical wire schemas live in `@eeko/event-contracts`; SDK type
+  definitions are kept in lockstep.
+
+### Added
+- `'component_dismiss'` is now an accepted event type in the runtime
+  bridge's `EVENT_TYPES` whitelist (was being silently dropped at the
+  iframe boundary even though the overlay was forwarding it).
+- New envelope type aliases exported from the package entry:
+  `ComponentTriggerEnvelope`, `ComponentUpdateEnvelope`,
+  `ComponentDismissEnvelope`, `ComponentSyncEnvelope`,
+  `ChatMessageEnvelope`, `VariableUpdatedEnvelope`.
+
 ## [0.3.0] - 2026-04-17
 
 ### Added
