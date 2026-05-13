@@ -92,6 +92,31 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
     }
   }
 
+  // Unwrap rule for the parent → iframe event envelope.
+  //
+  // The wire shape is uniformly { type, context, payload } across every
+  // outbound event. For chat_message that payload is a self-contained
+  // UnifiedMessage (chat / monetary / subscription / engagement,
+  // discriminated by payload.type) that already carries platform,
+  // channel, timestamps, user, etc. — the outer envelope is pure
+  // transport noise, so handlers receive the UnifiedMessage directly.
+  //
+  // Every other event keeps the wire envelope because its outer context
+  // carries fields the payload doesn't (instanceId for component_*,
+  // variableId for variable_updated, etc.). Stripping there would lose
+  // information.
+  function unwrap(eventName, data) {
+    if (
+      eventName === 'chat_message' &&
+      data &&
+      typeof data === 'object' &&
+      data.payload !== undefined
+    ) {
+      return data.payload;
+    }
+    return data;
+  }
+
   function reset() {
     for (var k in listeners) { if (listeners[k]) listeners[k].length = 0; }
     state = {
@@ -177,7 +202,7 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
       switch (msg.type) {
         case 'event':
           if (msg.event && msg.payload !== undefined) {
-            emit(msg.event, msg.payload);
+            emit(msg.event, unwrap(msg.event, msg.payload));
           }
           break;
         case 'state':
@@ -207,7 +232,7 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
         return;
       }
       if (msg.type === 'eeko:event' && msg.event && EVENT_TYPES.indexOf(msg.event) !== -1) {
-        emit(msg.event, msg.data);
+        emit(msg.event, unwrap(msg.event, msg.data));
       }
     });
 
