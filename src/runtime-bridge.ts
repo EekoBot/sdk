@@ -153,22 +153,20 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
 
   var TOKEN_RE = /\\{(\\w+)\\}/g;
 
-  function attrEscape(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function substituteString(tpl, data, escape) {
+  // Attribute values are stored verbatim by setAttribute (no HTML
+  // re-parsing happens on assignment), and the iframe shell is already
+  // sandbox-isolated with a strict CSP. We deliberately do not apply
+  // HTML-escape here — that would render literal '&amp;' / '&lt;' as
+  // user-visible text inside attributes like title / alt / aria-label.
+  // Authors who interpolate untrusted values into JS-parsing attributes
+  // (style, onclick, srcdoc) own escaping per their own context.
+  function substituteString(tpl, data) {
     if (typeof tpl !== 'string' || tpl.indexOf('{') === -1) return tpl;
     return tpl.replace(TOKEN_RE, function (match, key) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
         var v = data[key];
         if (v === null || v === undefined) return match;
-        return escape ? attrEscape(String(v)) : String(v);
+        return String(v);
       }
       return match;
     });
@@ -203,7 +201,7 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
     );
     var n;
     while ((n = walker.nextNode())) {
-      n.nodeValue = substituteString(n.nodeValue, data, false);
+      n.nodeValue = substituteString(n.nodeValue, data);
     }
 
     var els = document.body.querySelectorAll('*');
@@ -215,7 +213,7 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
       for (var j = 0; j < attrs.length; j++) {
         var v = attrs[j].value;
         if (v && v.indexOf('{') !== -1) {
-          attrs[j].value = substituteString(v, data, true);
+          attrs[j].value = substituteString(v, data);
         }
       }
     }
@@ -254,11 +252,26 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
 
   // Pick up shell-injected seed state synchronously so the first paint
   // already has variantConfig values filled in before author JS runs.
+  // The shell places this script inside <body> after the widget markup,
+  // so document.body normally exists by the time we get here — but if a
+  // future caller wires the bridge into <head> we'd hit a null body, so
+  // fall back to DOMContentLoaded.
   try {
     var injected = window.__EEKO_INIT__;
     if (injected && typeof injected === 'object') {
       setState(injected);
-      if (injected.variantConfig) processDOM(injected.variantConfig);
+      var injectedVariant = injected.variantConfig;
+      if (injectedVariant) {
+        if (document.body) {
+          processDOM(injectedVariant);
+        } else {
+          var onReady = function () {
+            document.removeEventListener('DOMContentLoaded', onReady);
+            processDOM(injectedVariant);
+          };
+          document.addEventListener('DOMContentLoaded', onReady);
+        }
+      }
     }
   } catch (e) {
     console.error('[eekoSDK] __EEKO_INIT__ read failed', e);
