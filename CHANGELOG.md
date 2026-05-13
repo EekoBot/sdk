@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-13
+
+### Changed
+- **Breaking (chat_message only):** The runtime bridge now unwraps the
+  `{type, context, payload}` wire envelope for `chat_message` events and
+  emits the inner `UnifiedMessage` directly. `UnifiedMessage` is already
+  the canonical developer-facing shape (discriminated by its own `type`
+  field — `chat_message` / `monetary_event` / `subscription_event` /
+  `engagement_event` — with `context`, `user`, `message`, etc.), and the
+  outer envelope only carries `userId` as unique information (available
+  via `eekoSDK.getState().userId`).
+
+  ```ts
+  // Before (v0.4.x)
+  eekoSDK.on('chat_message', (event) => {
+    const username = event.payload.user.username
+    const text = event.payload.message.text
+  })
+
+  // After (v0.5.0)
+  eekoSDK.on('chat_message', (msg) => {
+    // msg is a UnifiedMessage; discriminate on msg.type
+    if (msg.type === 'chat_message') {
+      const username = msg.user.username
+      const text = msg.message.text
+    } else if (msg.type === 'engagement_event' && msg.subType === 'follow') {
+      celebrate(msg.user.username)
+    } else if (msg.type === 'subscription_event') {
+      // msg.subscriber, msg.subscription.tier
+    } else if (msg.type === 'monetary_event') {
+      // msg.user, msg.monetary.amount, msg.monetary.currency
+    }
+  })
+  ```
+
+  Other events (`component_trigger`, `component_update`, `component_dismiss`,
+  `component_sync`, `variable_updated`) keep the envelope intact — their
+  outer `context` carries `instanceId` / `variableId` / etc. that the
+  payload doesn't, so unwrapping there would lose information. A future
+  minor will revisit those with a richer normaliser.
+
 ## [0.4.0] - 2026-05-03
 
 ### Changed
@@ -79,7 +120,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Event constants (`EEKO_EVENTS`)
 - CI/CD workflows for testing and npm publishing
 
-[Unreleased]: https://github.com/EekoBot/sdk/compare/0.1.3...HEAD
+[Unreleased]: https://github.com/EekoBot/sdk/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/EekoBot/sdk/compare/0.4.0...0.5.0
+[0.4.0]: https://github.com/EekoBot/sdk/compare/0.3.0...0.4.0
+[0.3.0]: https://github.com/EekoBot/sdk/compare/0.2.0...0.3.0
+[0.2.0]: https://github.com/EekoBot/sdk/compare/0.1.3...0.2.0
 [0.1.3]: https://github.com/EekoBot/sdk/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/EekoBot/sdk/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/EekoBot/sdk/compare/0.1.0...0.1.1
