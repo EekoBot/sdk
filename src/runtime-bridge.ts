@@ -142,6 +142,141 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
     }
   };
 
+  // ── Phase 2 template substitution ──────────────────────────────────────
+  //
+  // Widget-host substitutes globalConfig values into HTML/CSS/JS at serve
+  // time, but leaves variant-scope {tokens} unsubstituted so they can be
+  // filled in here on each trigger event. Mirrors the pre-iframe pipeline:
+  // globals bake at init, variants substitute on each trigger by walking
+  // the iframe DOM. <script>, <style>, and <template> contents are skipped
+  // (their text has already been parsed; re-substituting is a no-op).
+
+  var TOKEN_RE = /\\{(\\w+)\\}/g;
+
+  // Attribute values are stored verbatim by setAttribute (no HTML
+  // re-parsing happens on assignment), and the iframe shell is already
+  // sandbox-isolated with a strict CSP. We deliberately do not apply
+  // HTML-escape here — that would render literal '&amp;' / '&lt;' as
+  // user-visible text inside attributes like title / alt / aria-label.
+  // Authors who interpolate untrusted values into JS-parsing attributes
+  // (style, onclick, srcdoc) own escaping per their own context.
+  function substituteString(tpl, data) {
+    if (typeof tpl !== 'string' || tpl.indexOf('{') === -1) return tpl;
+    return tpl.replace(TOKEN_RE, function (match, key) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        var v = data[key];
+        if (v === null || v === undefined) return match;
+        return String(v);
+      }
+      return match;
+    });
+  }
+
+  function hasOwnKeys(o) {
+    for (var k in o) {
+      if (Object.prototype.hasOwnProperty.call(o, k)) return true;
+    }
+    return false;
+  }
+
+  function processDOM(data) {
+    if (!data || typeof data !== 'object' || !document.body) return;
+    if (!hasOwnKeys(data)) return;
+
+    var walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function (n) {
+          var p = n.parentNode;
+          var tag = p && p.nodeName;
+          if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEMPLATE') {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return n.nodeValue && n.nodeValue.indexOf('{') !== -1
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_SKIP;
+        }
+      }
+    );
+    var n;
+    while ((n = walker.nextNode())) {
+      n.nodeValue = substituteString(n.nodeValue, data);
+    }
+
+    var els = document.body.querySelectorAll('*');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var tag = el.nodeName;
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEMPLATE') continue;
+      var attrs = el.attributes;
+      for (var j = 0; j < attrs.length; j++) {
+        var v = attrs[j].value;
+        if (v && v.indexOf('{') !== -1) {
+          attrs[j].value = substituteString(v, data);
+        }
+      }
+    }
+  }
+
+  function phase2(eventName, envelope) {
+    if (
+      eventName !== 'component_trigger' &&
+      eventName !== 'component_update' &&
+      eventName !== 'component_sync'
+    ) return;
+
+    var triggerData = null;
+    if (envelope && typeof envelope === 'object') {
+      var pl = envelope.payload;
+      if (pl && typeof pl === 'object') {
+        if (pl.data && typeof pl.data === 'object') triggerData = pl.data;
+        else triggerData = pl;
+      }
+    }
+
+    var merged = {};
+    var base = state.variantConfig;
+    if (base && typeof base === 'object') {
+      for (var k1 in base) {
+        if (Object.prototype.hasOwnProperty.call(base, k1)) merged[k1] = base[k1];
+      }
+    }
+    if (triggerData) {
+      for (var k2 in triggerData) {
+        if (Object.prototype.hasOwnProperty.call(triggerData, k2)) merged[k2] = triggerData[k2];
+      }
+    }
+    processDOM(merged);
+  }
+
+  // Pick up shell-injected seed state synchronously so the first paint
+  // already has variantConfig values filled in before author JS runs.
+  // The shell places this script inside <body> after the widget markup,
+  // so document.body normally exists by the time we get here — but if a
+  // future caller wires the bridge into <head> we'd hit a null body, so
+  // fall back to DOMContentLoaded.
+  try {
+    var injected = window.__EEKO_INIT__;
+    if (injected && typeof injected === 'object') {
+      setState(injected);
+      var injectedVariant = injected.variantConfig;
+      if (injectedVariant) {
+        if (document.body) {
+          processDOM(injectedVariant);
+        } else {
+          var onReady = function () {
+            document.removeEventListener('DOMContentLoaded', onReady);
+            processDOM(injectedVariant);
+          };
+          document.addEventListener('DOMContentLoaded', onReady);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[eekoSDK] __EEKO_INIT__ read failed', e);
+  }
+
   // ── Transport: dev (WebSocket) or production (parent postMessage) ────────
 
   var devCfg = window.__EEKO_DEV__;
@@ -202,6 +337,7 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
       switch (msg.type) {
         case 'event':
           if (msg.event && msg.payload !== undefined) {
+            phase2(msg.event, msg.payload);
             emit(msg.event, unwrap(msg.event, msg.payload));
           }
           break;
@@ -209,7 +345,11 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
           if (msg.state) setState(msg.state);
           break;
         case 'command':
-          if (msg.command === 'init') { setState(msg.state || {}); ready = true; }
+          if (msg.command === 'init') {
+            setState(msg.state || {});
+            ready = true;
+            if (state.variantConfig) processDOM(state.variantConfig);
+          }
           else if (msg.command === 'reset') { reset(); }
           else if (msg.command === 'disconnect') { if (ws) ws.close(); }
           break;
@@ -228,10 +368,12 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
       if (msg.type === 'eeko:init') {
         setState(msg.state || {});
         ready = true;
+        if (state.variantConfig) processDOM(state.variantConfig);
         emit('component_mount', { componentId: state.componentId, type: 'widget' });
         return;
       }
       if (msg.type === 'eeko:event' && msg.event && EVENT_TYPES.indexOf(msg.event) !== -1) {
+        phase2(msg.event, msg.data);
         emit(msg.event, unwrap(msg.event, msg.data));
       }
     });

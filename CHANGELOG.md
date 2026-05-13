@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-13
+
+### Added
+- **Two-phase template substitution.** The runtime bridge now performs a
+  Phase-2 substitution pass on `component_trigger`, `component_update`, and
+  `component_sync` events: it walks the iframe DOM (skipping `<script>`,
+  `<style>`, `<template>` content) and replaces any remaining `{token}`
+  placeholders in text nodes and attribute values with values from
+  `state.variantConfig` merged with `event.payload.data`. Mirrors the
+  pre-iframe pipeline where globals baked at serve time and variants
+  substituted on each trigger.
+
+  This is purely additive — widgets that already handle triggers
+  imperatively keep working. To use it, leave `{variantToken}` placeholders
+  in the served HTML/CSS and configure the corresponding fields in
+  `widget.json`'s `variantConfig`. Trigger payloads can override on a
+  per-event basis.
+
+- **Shell-injected seed state.** When the iframe shell defines
+  `window.__EEKO_INIT__ = { componentId, userId, globalConfig, variantConfig }`
+  before loading `/_runtime/sdk.js`, the bridge picks it up synchronously
+  at boot and runs the initial Phase-2 pass against `variantConfig`. This
+  lets the first paint show configured variant values without waiting for
+  the parent's postMessage init.
+
 ## [0.5.0] - 2026-05-13
 
 ### Changed
@@ -120,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Event constants (`EEKO_EVENTS`)
 - CI/CD workflows for testing and npm publishing
 
-[Unreleased]: https://github.com/EekoBot/sdk/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/EekoBot/sdk/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/EekoBot/sdk/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/EekoBot/sdk/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/EekoBot/sdk/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/EekoBot/sdk/compare/0.2.0...0.3.0
