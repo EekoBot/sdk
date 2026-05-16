@@ -94,26 +94,11 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
 
   // Unwrap rule for the parent → iframe event envelope.
   //
-  // The wire shape is uniformly { type, context, payload } across every
-  // outbound event. For chat_message that payload is a self-contained
-  // UnifiedMessage (chat / monetary / subscription / engagement,
-  // discriminated by payload.type) that already carries platform,
-  // channel, timestamps, user, etc. — the outer envelope is pure
-  // transport noise, so handlers receive the UnifiedMessage directly.
-  //
-  // Every other event keeps the wire envelope because its outer context
-  // carries fields the payload doesn't (instanceId for component_*,
-  // variableId for variable_updated, etc.). Stripping there would lose
-  // information.
-  function unwrap(eventName, data) {
-    if (
-      eventName === 'chat_message' &&
-      data &&
-      typeof data === 'object' &&
-      data.payload !== undefined
-    ) {
-      return data.payload;
-    }
+  // Wire envelopes are always { type, context, payload } across every
+  // outbound event. \`payload\` IS the developer-facing data — the canonical
+  // shape handlers consume. One rule, no per-event branching.
+  function unwrap(_eventName, data) {
+    if (data && typeof data === 'object' && 'payload' in data) return data.payload;
     return data;
   }
 
@@ -226,13 +211,12 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
       eventName !== 'component_sync'
     ) return;
 
+    // Wire envelope's \`payload\` is the developer-facing data — flat record
+    // of dataPoints + streamer-configured fields. No nested .data lookup.
     var triggerData = null;
     if (envelope && typeof envelope === 'object') {
       var pl = envelope.payload;
-      if (pl && typeof pl === 'object') {
-        if (pl.data && typeof pl.data === 'object') triggerData = pl.data;
-        else triggerData = pl;
-      }
+      if (pl && typeof pl === 'object') triggerData = pl;
     }
 
     var merged = {};

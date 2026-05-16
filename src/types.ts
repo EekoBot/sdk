@@ -106,13 +106,13 @@ interface ComponentEnvelopeContext {
 export type ComponentTriggerEnvelope = BaseEnvelope<
   'component_trigger',
   ComponentEnvelopeContext,
-  { data: Record<string, unknown> }
+  Record<string, unknown>
 >
 
 export type ComponentUpdateEnvelope = BaseEnvelope<
   'component_update',
   ComponentEnvelopeContext,
-  { data: Record<string, unknown> }
+  Record<string, unknown>
 >
 
 export type ComponentDismissEnvelope = BaseEnvelope<
@@ -124,7 +124,7 @@ export type ComponentDismissEnvelope = BaseEnvelope<
 export type ComponentSyncEnvelope = BaseEnvelope<
   'component_sync',
   ComponentEnvelopeContext,
-  { data: Record<string, unknown> }
+  Record<string, unknown>
 >
 
 export type ChatMessageEnvelope = BaseEnvelope<
@@ -140,19 +140,28 @@ export type VariableUpdatedEnvelope = BaseEnvelope<
 >
 
 /**
- * Map of event types to their envelope types. Iframe lifecycle events
- * (`component_mount`, `component_unmount`) keep their flat payload shape
- * — they're SDK-internal, not wire events.
+ * Map of event types to the **handler argument shape** — what the runtime
+ * actually passes to `sdk.on(event, handler)` callbacks. For every wire
+ * event this is `envelope.payload` (the canonical developer-facing data);
+ * the runtime bridge unwraps the wire envelope before dispatching to
+ * handlers, so authors never see the `{type, context, payload}` wrapper.
+ *
+ * Iframe lifecycle events (`component_mount`, `component_unmount`) are
+ * SDK-internal and not wire events; they keep their flat payload shape.
+ *
+ * The `*Envelope` types above remain exported for anyone needing the wire
+ * shape (e.g. test fixtures, codec checks) — they're just not the
+ * handler-facing shape.
  */
 export interface EekoEventMap {
-  component_trigger: ComponentTriggerEnvelope
-  component_update: ComponentUpdateEnvelope
-  component_dismiss: ComponentDismissEnvelope
-  component_sync: ComponentSyncEnvelope
+  component_trigger: ComponentTriggerEnvelope['payload']
+  component_update: ComponentUpdateEnvelope['payload']
+  component_dismiss: ComponentDismissEnvelope['payload']
+  component_sync: ComponentSyncEnvelope['payload']
   component_mount: ComponentMountPayload
   component_unmount: ComponentUnmountPayload
-  chat_message: ChatMessageEnvelope
-  variable_updated: VariableUpdatedEnvelope
+  chat_message: ChatMessageEnvelope['payload']
+  variable_updated: VariableUpdatedEnvelope['payload']
 }
 
 /**

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-16
+
+### Changed
+- **Breaking (component_* events):** The runtime bridge now unwraps the
+  `{type, context, payload}` wire envelope for `component_trigger`,
+  `component_update`, `component_dismiss`, and `component_sync` events —
+  handlers receive `payload` directly, matching the contract that already
+  applies to `chat_message`. Combined with the publisher-side change in
+  `@eeko/event-contracts` that flattens `payload` (drops the legacy
+  `{ data: ... }` nesting), the canonical handler now reads
+  `data.username` flat, identical to the original pre-envelope contract
+  (`EekoBot/template-alert`).
+
+  ```ts
+  // Before (v0.6.x)
+  eekoSDK.on('component_trigger', (event) => {
+    const username = event.payload.data.username
+  })
+
+  // After (v0.7.0)
+  eekoSDK.on('component_trigger', (data) => {
+    const username = data.username  // flat, just like chat_message
+  })
+  ```
+
+  The `unwrap` function in the bridge collapses to a single rule for all
+  events — no per-event branching. `phase2` DOM substitution reads
+  `envelope.payload` directly (no `.data` lookup).
+
+  Resolves the deferred TODO from v0.5.0's "future minor will revisit
+  those with a richer normaliser."
+
 ## [0.6.0] - 2026-05-13
 
 ### Added
