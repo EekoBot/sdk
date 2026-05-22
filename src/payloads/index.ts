@@ -31,5 +31,7 @@ export type {
   ComponentType,
   ComponentMountPayload,
   ComponentUnmountPayload,
+  VariableType,
+  VariableRecord,
   VariableUpdatedPayload,
 } from './lifecycle'

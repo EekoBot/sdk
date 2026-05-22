@@ -87,7 +87,7 @@ export interface IEekoSDKInternal extends IEekoSDK {
   _initialize(state: Partial<EekoSDKState>): void
 }
 
-import type { ComponentMountPayload, ComponentUnmountPayload } from './payloads'
+import type { ComponentMountPayload, ComponentUnmountPayload, VariableRecord } from './payloads'
 
 // ── Wire envelopes (mirror @eeko/event-contracts/outbound) ───────────────
 
@@ -136,7 +136,7 @@ export type ChatMessageEnvelope = BaseEnvelope<
 export type VariableUpdatedEnvelope = BaseEnvelope<
   'variable_updated',
   { userId: string; variableId?: string; source?: string },
-  { variable: unknown }
+  { variable: VariableRecord }
 >
 
 /**

@@ -54,29 +54,44 @@ export interface ComponentUnmountPayload {
 }
 
 /**
- * Variable updated payload - emitted when SDK variables change
+ * Variable type discriminator — mirrors the server's variable types.
+ */
+export type VariableType = 'string' | 'number' | 'boolean' | 'date' | 'json'
+
+/**
+ * A variable record, as delivered to `variable_updated` handlers.
+ *
+ * `value` is the NEW value, ALREADY PARSED to its JS type by the server —
+ * use it directly. Do NOT `JSON.parse` it (that throws for string variables).
+ */
+export interface VariableRecord {
+  /** Variable name. */
+  name: string
+
+  /** Declared type of the variable. */
+  type: VariableType
+
+  /** New value, already parsed to its JS type (string / number / boolean / object). */
+  value: unknown
+
+  /** Additional server bookkeeping fields (id, timestamps, version, …). */
+  [key: string]: unknown
+}
+
+/**
+ * Variable updated payload — the handler argument for the `variable_updated`
+ * event. The runtime bridge unwraps the wire envelope, so handlers receive
+ * this shape directly.
  *
  * @example
  * ```typescript
  * window.eekoSDK.on('variable_updated', (payload) => {
- *   console.log(`${payload.name} changed to ${payload.value}`);
- *   // React to config changes
+ *   // payload.variable.value is already parsed — use it directly.
+ *   console.log(`${payload.variable.name} =`, payload.variable.value);
  * });
  * ```
  */
 export interface VariableUpdatedPayload {
-  /** Variable name that changed */
-  name: string
-
-  /** New value */
-  value: unknown
-
-  /** Previous value */
-  previousValue?: unknown
-
-  /** Source of the change */
-  source?: 'user' | 'system' | 'api'
-
-  /** Timestamp of the change */
-  timestamp?: number
+  /** The variable that changed. */
+  variable: VariableRecord
 }
