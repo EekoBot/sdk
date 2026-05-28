@@ -12,6 +12,7 @@ import type { EventType } from './types'
 export const EVENT_TYPES: readonly EventType[] = [
   'component_trigger',
   'component_update',
+  'component_dismiss',
   'component_sync',
   'component_mount',
   'component_unmount',
@@ -27,6 +28,8 @@ export const EEKO_EVENTS = {
   COMPONENT_TRIGGER: 'component_trigger',
   /** State update for widgets */
   COMPONENT_UPDATE: 'component_update',
+  /** Alert/widget dismiss event */
+  COMPONENT_DISMISS: 'component_dismiss',
   /** Full state sync */
   COMPONENT_SYNC: 'component_sync',
   /** Component mounted */
