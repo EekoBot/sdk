@@ -8,6 +8,7 @@
 export type {
   ComponentTriggerPayload,
   ComponentUpdatePayload,
+  ComponentDismissPayload,
 } from './component'
 
 // Chat events

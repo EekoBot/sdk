@@ -44,6 +44,7 @@ export type {
   // Component payloads
   ComponentTriggerPayload,
   ComponentUpdatePayload,
+  ComponentDismissPayload,
   // Chat payloads
   Platform,
   FragmentType,
@@ -79,4 +80,4 @@ export {
  * SDK Version. Keep in sync with package.json on each release (ideally inject at
  * build time so it can't drift again).
  */
-export const VERSION = '0.7.2'
+export const VERSION = '0.7.3'
