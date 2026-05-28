@@ -86,3 +86,24 @@ export interface ComponentUpdatePayload {
   /** Event timestamp */
   timestamp?: number
 }
+
+/**
+ * Component dismiss payload - tells a widget to dismiss/hide the current alert.
+ *
+ * @example
+ * ```typescript
+ * window.eekoSDK.on('component_dismiss', () => {
+ *   alertEl.classList.remove('show');
+ * });
+ * ```
+ */
+export interface ComponentDismissPayload {
+  /** Target component ID */
+  component_id?: string
+
+  /** Event timestamp */
+  timestamp?: number
+
+  /** Any additional dismiss data */
+  [key: string]: unknown
+}
