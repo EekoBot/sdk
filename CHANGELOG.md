@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-31
+
+### Added
+- `validateManifest` and the `widget.json` manifest schema (`WidgetManifest`,
+  `ManifestField`, `ManifestFieldType`, `ManifestFieldScope`,
+  `ManifestFieldOption`, `ValidateManifestResult`), exported from
+  `@eeko/sdk/template` (browser-safe) and `@eeko/sdk/template/node`. Mirrors the
+  server's `ComponentFieldDefinition` so a widget that validates locally
+  (e.g. via `eeko build`) validates the same way on commit.
+- `loadManifest(dir)` (Node) reads + validates `widget.json`.
+
+### Changed
+- **Breaking:** the canonical widget files are now `widget.json` and
+  `styles.css` (were `field.json` and `style.css`). `loadTemplateFiles` reads
+  `styles.css`; `buildConfigFromFields` keys on `key` and includes
+  `both`-scoped fields in either scope.
+
+### Removed
+- **Breaking:** `loadFieldConfig` and the legacy field types (`FieldDefinition`,
+  `FieldConfig`, `FieldType`, `FieldScope`, `FieldCategory`, `SelectOption`,
+  `FieldValidation`). Migrate to `loadManifest` / `validateManifest` /
+  `ManifestField` / `WidgetManifest`.
+
 ## [0.7.0] - 2026-05-16
 
 ### Changed
