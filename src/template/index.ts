@@ -33,14 +33,18 @@ export {
   coerceNumber,
 } from './validation'
 
-// Type definitions
+// Template engine options
+export type { TemplateOptions } from './types'
+
+// Widget manifest schema (widget.json) — the single source of truth for a
+// widget's configurable fields, mirrored from the server so a manifest that
+// validates here validates on commit.
+export { validateManifest } from './manifest'
 export type {
-  FieldType,
-  FieldScope,
-  SelectOption,
-  FieldValidation,
-  FieldDefinition,
-  FieldCategory,
-  FieldConfig,
-  TemplateOptions,
-} from './types'
+  ManifestFieldType,
+  ManifestFieldScope,
+  ManifestFieldOption,
+  ManifestField,
+  WidgetManifest,
+  ValidateManifestResult,
+} from './manifest'

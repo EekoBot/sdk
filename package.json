@@ -1,6 +1,6 @@
 {
   "name": "@eeko/sdk",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "Official SDK for building Eeko widgets and overlays",
   "type": "module",
   "main": "./dist/index.js",
@@ -38,6 +38,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check:version": "node -e \"const p=require('./package.json');const fs=require('fs');const m=fs.readFileSync('./src/index.ts','utf8').match(/VERSION\\s*=\\s*'([^']+)'/);if(!m||m[1]!==p.version){console.error('VERSION constant',m&&m[1],'does not match package.json',p.version);process.exit(1)}console.log('version ok',p.version)\"",
     "prepublishOnly": "npm run check:version && npm run build"
@@ -45,7 +47,8 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "tsup": "^8.0.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.7"
   },
   "keywords": [
     "eeko",
