@@ -9,17 +9,17 @@
  * // Node.js usage (CLI, build tools)
  * import {
  *   TemplateEngine,
- *   loadFieldConfig,
+ *   loadManifest,
  *   loadTemplateFiles,
  *   buildConfigFromFields
  * } from '@eeko/sdk/template/node'
  *
- * // Load field.json and template files
- * const fieldConfig = await loadFieldConfig('./my-template')
- * const files = await loadTemplateFiles('./my-template')
+ * // Load widget.json and template files
+ * const manifest = await loadManifest('./my-widget')
+ * const files = await loadTemplateFiles('./my-widget')
  *
  * // Build config from defaults
- * const config = buildConfigFromFields(fieldConfig.fields, 'global')
+ * const config = buildConfigFromFields(manifest.fields, 'global')
  *
  * // Process templates
  * const engine = new TemplateEngine(config)
@@ -33,7 +33,7 @@ export * from './index'
 
 // Node.js-specific utilities
 export {
-  loadFieldConfig,
+  loadManifest,
   buildConfigFromFields,
   mergeConfigs,
   loadTemplateFiles,

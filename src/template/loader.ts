@@ -1,15 +1,16 @@
 /**
  * @eeko/sdk - Template Loader (Node.js only)
  *
- * File loading utilities for field.json configuration.
- * This module uses Node.js APIs and should only be imported in Node.js environments.
+ * File loading utilities for a widget project's canonical files
+ * (`widget.json`, `index.html`, `styles.css`, `script.js`). Uses Node.js APIs
+ * and should only be imported in Node.js environments.
  *
  * SECURITY: Includes path traversal protection to prevent directory escape attacks.
  */
 
 import { readFile } from 'node:fs/promises'
 import { resolve, dirname } from 'node:path'
-import type { FieldConfig, FieldDefinition } from './types'
+import { validateManifest, type ManifestField, type WidgetManifest } from './manifest'
 
 /**
  * Validate that a resolved path is within the allowed base directory
@@ -27,88 +28,79 @@ function validatePathWithinBase(basePath: string, targetPath: string): void {
 }
 
 /**
- * Load and parse field.json from a template directory
+ * Load and validate `widget.json` from a widget project directory.
  *
- * @param templateDir - Absolute path to the template directory
- * @returns Parsed FieldConfig object
- * @throws Error if file not found, invalid JSON, or path traversal detected
+ * @param templateDir - Absolute path to the widget directory
+ * @returns The validated {@link WidgetManifest}
+ * @throws Error if the file is missing, invalid JSON, fails validation, or path traversal is detected
  *
  * @example
  * ```typescript
- * const config = await loadFieldConfig('/path/to/template')
- * console.log(config.globalConfig) // { goalTitle: 'My Goal', ... }
+ * const manifest = await loadManifest('/path/to/widget')
+ * console.log(manifest.globalConfig) // { goalTitle: 'My Goal', ... }
  * ```
  */
-export async function loadFieldConfig(templateDir: string): Promise<FieldConfig> {
+export async function loadManifest(templateDir: string): Promise<WidgetManifest> {
   const resolvedDir = resolve(templateDir)
-  const fieldJsonPath = resolve(resolvedDir, 'field.json')
+  const manifestPath = resolve(resolvedDir, 'widget.json')
 
-  // Ensure field.json is within the template directory
-  validatePathWithinBase(resolvedDir, fieldJsonPath)
+  // Ensure widget.json is within the widget directory
+  validatePathWithinBase(resolvedDir, manifestPath)
 
+  let parsed: unknown
   try {
-    const content = await readFile(fieldJsonPath, 'utf-8')
-    const parsed = JSON.parse(content) as FieldConfig
-
-    // Validate required structure
-    if (!parsed.fields || !Array.isArray(parsed.fields)) {
-      throw new Error('Invalid field.json: missing or invalid "fields" array')
-    }
-
-    // Ensure globalConfig and variantConfig exist
-    if (!parsed.globalConfig || typeof parsed.globalConfig !== 'object') {
-      parsed.globalConfig = {}
-    }
-
-    if (!parsed.variantConfig || typeof parsed.variantConfig !== 'object') {
-      parsed.variantConfig = {}
-    }
-
-    return parsed
+    const content = await readFile(manifestPath, 'utf-8')
+    parsed = JSON.parse(content)
   } catch (error) {
     if (error instanceof SyntaxError) {
-      throw new Error(`Invalid JSON in field.json: ${error.message}`)
+      throw new Error(`Invalid JSON in widget.json: ${error.message}`)
     }
     throw error
   }
+
+  const result = validateManifest(parsed)
+  if (!result.ok) {
+    throw new Error(`Invalid widget.json:\n  - ${result.errors.join('\n  - ')}`)
+  }
+  return result.manifest
 }
 
 /**
- * Build a configuration object from field definitions using their default values
+ * Build a configuration object from manifest fields using their default values,
+ * keyed by each field's `key`.
  *
- * @param fields - Array of field definitions
+ * `both`-scoped fields participate in both the `global` and `variant` scopes.
+ *
+ * @param fields - Array of manifest field definitions
  * @param scope - Optional scope filter ('global' or 'variant')
- * @returns Configuration object with field IDs as keys and default values
+ * @returns Configuration object keyed by field `key` with default values
  *
  * @example
  * ```typescript
  * const fields = [
- *   { id: 'goalTitle', type: 'text', scope: 'global', label: 'Title', defaultValue: 'My Goal' },
- *   { id: 'progress', type: 'number', scope: 'variant', label: 'Progress', defaultValue: 0 }
+ *   { key: 'goalTitle', type: 'text', scope: 'global', label: 'Title', defaultValue: 'My Goal' },
+ *   { key: 'progress', type: 'number', scope: 'variant', label: 'Progress', defaultValue: 0 }
  * ]
  *
- * buildConfigFromFields(fields)
- * // Returns: { goalTitle: 'My Goal', progress: 0 }
- *
- * buildConfigFromFields(fields, 'global')
- * // Returns: { goalTitle: 'My Goal' }
+ * buildConfigFromFields(fields)          // { goalTitle: 'My Goal', progress: 0 }
+ * buildConfigFromFields(fields, 'global') // { goalTitle: 'My Goal' }
  * ```
  */
 export function buildConfigFromFields(
-  fields: FieldDefinition[],
+  fields: ManifestField[],
   scope?: 'global' | 'variant'
 ): Record<string, unknown> {
   const config: Record<string, unknown> = {}
 
   for (const field of fields) {
-    // Skip if scope filter is set and doesn't match
-    if (scope && field.scope !== scope) {
+    // Apply the scope filter; `both` participates in either scope.
+    if (scope && field.scope !== scope && field.scope !== 'both') {
       continue
     }
 
     // Only include fields that have a default value defined
     if (field.defaultValue !== undefined) {
-      config[field.id] = field.defaultValue
+      config[field.key] = field.defaultValue
     }
   }
 
@@ -120,15 +112,6 @@ export function buildConfigFromFields(
  *
  * @param configs - Configuration objects to merge (in order of precedence)
  * @returns Merged configuration object
- *
- * @example
- * ```typescript
- * const defaults = { title: 'Default', color: '#fff' }
- * const user = { title: 'Custom' }
- *
- * mergeConfigs(defaults, user)
- * // Returns: { title: 'Custom', color: '#fff' }
- * ```
  */
 export function mergeConfigs(
   ...configs: Record<string, unknown>[]
@@ -150,16 +133,17 @@ export function mergeConfigs(
 }
 
 /**
- * Load template files (HTML, CSS, JS) from a template directory
+ * Load the canonical template files (`index.html`, `styles.css`, `script.js`)
+ * from a widget project directory.
  *
- * @param templateDir - Absolute path to the template directory
- * @returns Object containing file contents
+ * @param templateDir - Absolute path to the widget directory
+ * @returns Object containing file contents (html required; css/js optional)
  *
  * @example
  * ```typescript
- * const files = await loadTemplateFiles('/path/to/template')
+ * const files = await loadTemplateFiles('/path/to/widget')
  * console.log(files.html) // Contents of index.html
- * console.log(files.css)  // Contents of style.css (or undefined if not found)
+ * console.log(files.css)  // Contents of styles.css (or undefined if not found)
  * ```
  */
 export async function loadTemplateFiles(templateDir: string): Promise<{
@@ -169,12 +153,12 @@ export async function loadTemplateFiles(templateDir: string): Promise<{
 }> {
   const resolvedDir = resolve(templateDir)
 
-  // Define expected file paths
+  // Define expected file paths (canonical layout)
   const htmlPath = resolve(resolvedDir, 'index.html')
-  const cssPath = resolve(resolvedDir, 'style.css')
+  const cssPath = resolve(resolvedDir, 'styles.css')
   const jsPath = resolve(resolvedDir, 'script.js')
 
-  // Validate all paths are within the template directory
+  // Validate all paths are within the widget directory
   validatePathWithinBase(resolvedDir, htmlPath)
   validatePathWithinBase(resolvedDir, cssPath)
   validatePathWithinBase(resolvedDir, jsPath)
@@ -203,7 +187,7 @@ export async function loadTemplateFiles(templateDir: string): Promise<{
 
 /**
  * Get the parent directory of a file path
- * Useful for getting the template directory from a file path
+ * Useful for getting the widget directory from a file path
  *
  * @param filePath - Path to a file
  * @returns Parent directory path
