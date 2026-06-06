@@ -15,6 +15,8 @@
  * `audio`, and `video` values are `eeko-asset://<id>` references resolved by
  * the widget-host at serve time.
  */
+import type { WidgetInteractions } from '../interactions/types'
+
 export type ManifestFieldType =
   | 'text'
   | 'textarea'
@@ -90,6 +92,13 @@ export interface WidgetManifest {
   componentType: string
   fields: ManifestField[]
   behavior?: Record<string, unknown>
+  /**
+   * Optional declarative behaviour. Interpreted by the SDK interaction runtime
+   * (see `../interactions/types`). Absent on legacy/hand-coded widgets; the
+   * runtime no-ops when it isn't present. The authoritative schema validation
+   * lives in nexus-api on commit — this is only a structural pre-flight.
+   */
+  interactions?: WidgetInteractions
   globalConfig: Record<string, unknown>
   variantConfig: Record<string, unknown>
 }
@@ -164,6 +173,15 @@ export function validateManifest(input: unknown): ValidateManifestResult {
     errors.push('`behavior` must be an object when present')
   }
 
+  const interactions = input.interactions
+  if (interactions !== undefined) {
+    if (!isPlainObject(interactions)) {
+      errors.push('`interactions` must be an object when present')
+    } else if (!isPlainObject(interactions.on)) {
+      errors.push('`interactions.on` must be an object mapping events to action lists')
+    }
+  }
+
   const globalConfig = input.globalConfig
   if (globalConfig !== undefined && !isPlainObject(globalConfig)) {
     errors.push('`globalConfig` must be an object when present')
@@ -185,6 +203,9 @@ export function validateManifest(input: unknown): ValidateManifestResult {
       componentType: componentType as string,
       fields,
       ...(isPlainObject(behavior) ? { behavior } : {}),
+      ...(isPlainObject(interactions)
+        ? { interactions: interactions as unknown as WidgetInteractions }
+        : {}),
       globalConfig: isPlainObject(globalConfig) ? globalConfig : {},
       variantConfig: isPlainObject(variantConfig) ? variantConfig : {},
     },

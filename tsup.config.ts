@@ -7,6 +7,7 @@ export default defineConfig({
     'src/template/index.ts',
     'src/template/node.ts',
     'src/runtime-bridge.ts',
+    'src/interactions/index.ts',
   ],
   format: ['esm'],
   dts: true,

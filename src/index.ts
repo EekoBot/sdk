@@ -67,6 +67,29 @@ export type {
 // Type guards
 export { isChatMessagePayload } from './payloads'
 
+// Declarative interaction model (the contract; the interpreter ships inside
+// the runtime bridge). Types for the editor / AI agent / nexus-api Zod mirror,
+// plus the runtime ACTION_OPS / TIMER_TICK constants and the hasInteractions
+// classifier.
+export type {
+  ElTarget,
+  Binding,
+  Guard,
+  NumericStyleProp,
+  RatioStyleProp,
+  BindableAttr,
+  BindingMap,
+  AnimationPreset,
+  Action,
+  ActionOp,
+  Sequence,
+  TimerTickPayload,
+  InteractionEvent,
+  QueuePolicy,
+  WidgetInteractions,
+} from './interactions'
+export { ACTION_OPS, TIMER_TICK, hasInteractions } from './interactions'
+
 // Error classes
 export {
   EekoSDKError,
@@ -80,4 +103,4 @@ export {
  * SDK Version. Keep in sync with package.json on each release (ideally inject at
  * build time so it can't drift again).
  */
-export const VERSION = '0.8.0'
+export const VERSION = '0.9.0'
