@@ -23,6 +23,8 @@
  * return `<script>window.__EEKO_DEV__={wsUrl:"ws://localhost:9876"};</script><script>${RUNTIME_BRIDGE_JS}</script>`
  */
 
+import { INTERACTION_RUNTIME_JS } from './interaction-runtime'
+
 /**
  * Shape of the `window.__EEKO_DEV__` global that the CLI's Vite plugin sets
  * before the bridge loads. Exported so the CLI plugin can typecheck its config.
@@ -36,8 +38,12 @@ export interface EekoDevGlobal {
  * module syntax. Both production (parent-postMessage) and dev (WebSocket)
  * transports are compiled in; the IIFE reads `window.__EEKO_DEV__` at
  * boot to decide which path to take.
+ *
+ * Kept internal: the shipped runtime ({@link RUNTIME_BRIDGE_JS}) appends the
+ * declarative interaction interpreter after this IIFE, under the unchanged
+ * public export name so the widget-host / CLI need no injection change.
  */
-export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
+const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
 (function () {
   if (window.eekoSDK && window.eekoSDK.__eekoBridge) return;
 
@@ -333,6 +339,11 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
             setState(msg.state || {});
             ready = true;
             if (state.variantConfig) processDOM(state.variantConfig);
+            // Parity with the production postMessage path's eeko:init, which
+            // emits component_mount so timer-driven / mount-bound widgets (and
+            // the interaction runtime's component_mount sequences) fire under
+            // \`eeko dev\` too.
+            emit('component_mount', { componentId: state.componentId, type: 'widget' });
           }
           else if (msg.command === 'reset') { reset(); }
           else if (msg.command === 'disconnect') { if (ws) ws.close(); }
@@ -368,3 +379,13 @@ export const RUNTIME_BRIDGE_JS: string = `/* @eeko/sdk runtime bridge */
   }
 })();
 `
+
+/**
+ * The full shipped runtime served at the iframe's `/_runtime/sdk.js`: the
+ * bridge IIFE followed by the declarative interaction interpreter IIFE. The
+ * interpreter runs after `window.eekoSDK` exists (so it can register handlers)
+ * and before the author's `script.js`, and no-ops on widgets with no
+ * `interactions`. The export name is unchanged so widget-host and the CLI need
+ * no injection change.
+ */
+export const RUNTIME_BRIDGE_JS: string = BRIDGE_IIFE_JS + '\n' + INTERACTION_RUNTIME_JS

@@ -1,6 +1,6 @@
 {
   "name": "@eeko/sdk",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Official SDK for building Eeko widgets and overlays",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,6 +22,10 @@
     "./template/node": {
       "types": "./dist/template/node.d.ts",
       "import": "./dist/template/node.js"
+    },
+    "./interactions": {
+      "types": "./dist/interactions/index.d.ts",
+      "import": "./dist/interactions/index.js"
     },
     "./runtime-bridge": {
       "types": "./dist/runtime-bridge.d.ts",
@@ -46,6 +50,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "happy-dom": "^20.10.2",
     "tsup": "^8.0.0",
     "typescript": "^5.5.0",
     "vitest": "^4.1.7"
