@@ -125,14 +125,15 @@ describe('alert: set-text + show + wait + hide', () => {
     expect(el('name')!.textContent).toBe('Ada')
     expect(el('amount')!.textContent).toBe('$5.00')
 
-    // show: visibility cleared + entrance keyframe applied
-    expect(el('card')!.style.visibility).toBe('')
+    // show: explicit inline 'visible' (must override stylesheet-hidden roots,
+    // so clearing to '' is not enough) + entrance keyframe applied
+    expect(el('card')!.style.visibility).toBe('visible')
     expect(el('card')!.style.animation).toContain('eeko-fade-in')
 
     // advance past show duration -> into wait
     await vi.advanceTimersByTimeAsync(100)
     // still visible during the 1000ms wait
-    expect(el('card')!.style.visibility).toBe('')
+    expect(el('card')!.style.visibility).toBe('visible')
 
     // advance through wait + hide duration
     await vi.advanceTimersByTimeAsync(1000)
@@ -165,14 +166,34 @@ describe('alert: set-text + show + wait + hide', () => {
       `<div data-eeko-el="card" style="visibility:hidden"></div>`
     )
     emitWire('component_trigger', {})
-    expect(el('card')!.style.visibility).toBe('')
+    expect(el('card')!.style.visibility).toBe('visible')
     // 'none' animation -> show settles on the default-ms fallback timer.
     await vi.advanceTimersByTimeAsync(400)
     // not yet hidden (waiting 3000ms)
-    expect(el('card')!.style.visibility).toBe('')
+    expect(el('card')!.style.visibility).toBe('visible')
     await vi.advanceTimersByTimeAsync(3000)
     await vi.advanceTimersByTimeAsync(400)
     expect(el('card')!.style.visibility).toBe('hidden')
+  })
+
+  it('show reveals an element hidden by a STYLESHEET rule, not just inline style', () => {
+    // The standard alert authoring pattern hides the root via CSS
+    // (`.alert { visibility: hidden }`). An inline '' cannot override a
+    // stylesheet rule — show must set the explicit 'visible' value or the
+    // widget can never be revealed on first trigger.
+    const interactions: WidgetInteractions = {
+      version: 1,
+      on: {
+        component_trigger: [{ op: 'show', target: 'card', animation: 'none' }],
+      },
+    }
+    boot(
+      { componentId: 'c1', userId: 'u1', globalConfig: {}, variantConfig: {}, interactions },
+      `<style>.alert { visibility: hidden; }</style>
+       <div data-eeko-el="card" class="alert"></div>`
+    )
+    emitWire('component_trigger', {})
+    expect(el('card')!.style.visibility).toBe('visible')
   })
 })
 

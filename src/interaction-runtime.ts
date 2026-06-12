@@ -207,8 +207,12 @@ export const INTERACTION_RUNTIME_JS: string = `/* @eeko/sdk interaction runtime 
   }
 
   function applyShow(el, action) {
-    // Make visible first so any entrance keyframe is observable.
-    el.style.visibility = '';
+    // Make visible first so any entrance keyframe is observable. Must be the
+    // explicit 'visible' value, not '': clearing the inline style only falls
+    // back to the stylesheet, and the standard authoring pattern hides alert
+    // roots via a stylesheet rule (.alert { visibility: hidden }) which ''
+    // cannot override, so the widget could never be revealed.
+    el.style.visibility = 'visible';
     if (el.style.display === 'none') el.style.display = '';
     el.style.opacity = '';
     var name = presetKeyframe(action.animation);
