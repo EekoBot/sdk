@@ -199,7 +199,7 @@ Every element an action targets must carry a **stable \`data-eeko-el\` id** in \
 
 ### Animation presets
 
-\`show\` / \`hide\` take an \`animation\` preset name: ${presetList}. The matching keyframes ship in the widget-host shell (\`eeko-*\`) — **never define \`@keyframes\` for them in your CSS**; just name the preset.
+\`show\` / \`hide\` take an \`animation\` preset name: ${presetList}. The matching keyframes ship in Eeko's host page (\`eeko-*\`) — **never define \`@keyframes\` for them in your CSS**; just name the preset.
 
 - **\`hide\` plays the same preset keyframe in reverse.** \`hide\` + \`slide-up\` exits downward (the entrance undone); there is no separate exit-preset vocabulary.
 - **Presets animate \`opacity\` and \`transform\`.** Never author your own \`transform\` on an element a preset targets — it gets clobbered for the animation's duration. Center panels with auto margins or \`left\`/\`right\`, not \`translateX(-50%)\`.
@@ -360,7 +360,7 @@ const STYLING_RULES = `## Styling rules {#styling-rules}
 - The CSS is iframe-scoped — no resets needed beyond your own \`* { margin: 0; padding: 0; box-sizing: border-box; }\`, no namespacing, no leakage in or out.
 - **Widgets are compact overlays, not full-screen scenery.** A small visible panel (typically 20–40% of canvas width), centered or corner-anchored. Never fill \`body\` with decorative backgrounds (skies, gradients, particle layers).
 - **Alerts (and mount-revealed countdowns) start hidden:** \`visibility: hidden\` on the panel in CSS; the \`show\` op reveals it (and \`hide\` re-hides it). Without this the alert is permanently visible and the entrance animation has nothing to play. Always-on widgets — chat, goals, polls, banners — are visible by default.
-- Do NOT define \`@keyframes\` for the animation presets (${presetList}) — the \`eeko-*\` keyframes live in the widget-host shell. Your CSS carries only the static look and the hidden/visible starting states.
+- Do NOT define \`@keyframes\` for the animation presets (${presetList}) — the \`eeko-*\` keyframes live in Eeko's host page. Your CSS carries only the static look and the hidden/visible starting states.
 - Static styling values use Phase-1 \`{tokens}\` — \`{backgroundColor}\`, \`{accentColor}\`, \`{fontFamily}\` — each declared as a global field with its default mirrored in \`globalConfig\`.`
 
 const ASSETS = `## Assets {#assets}
