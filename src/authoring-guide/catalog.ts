@@ -353,12 +353,12 @@ export const FORBIDDEN_PATTERNS: readonly ForbiddenPattern[] = [
   },
   {
     pattern: '<!DOCTYPE html> / <html> / <head> / <body> / <link rel="stylesheet"> / <script src=...>',
-    why: 'index.html is body-only markup. widget-host renders its own shell page and inlines styles.css + script.js into it; a full document nests html/body, and link/script file references 404.',
+    why: 'index.html is body-only markup. Eeko renders its own page shell and inlines styles.css + script.js into it; a full document nests html/body, and link/script file references 404.',
     instead: 'Write only the body markup. styles.css and script.js are inlined automatically.',
   },
   {
     pattern: '@keyframes eeko-fade-in (or any eeko-* / animation-preset keyframe)',
-    why: 'The entrance/exit preset keyframes ship in the widget-host shell. Redefining them in widget CSS desyncs editor preview and live overlay.',
+    why: 'The entrance/exit preset keyframes ship in the Eeko host page. Redefining them in widget CSS desyncs editor preview and live overlay.',
     instead: 'Name the preset in the show/hide op (fade, slide-up, slide-down, zoom, pulse); keep widget CSS to static look + hidden/visible starting states.',
   },
   {
