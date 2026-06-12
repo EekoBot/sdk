@@ -151,6 +151,7 @@ Each entry in \`fields\`:
   - \`soundUrl\` / \`soundVolume\` (0–1) — fallbacks for the \`play-sound\` op;
   - \`queueBehavior\` — the default queue policy (${queuePolicyList}) when \`interactions.queue\` doesn't set one for an event.
   The keys readable through a \`{ fromBehavior }\` binding are exactly: ${behaviorKeyList}.
+  The widget's owner edits \`behavior\` values in Studio's config surface (they are not \`fields\` and need no field schema entry) — "configured display duration" means \`behavior.displayDuration\`, not a new field.
 - \`interactions\` is optional only for a genuinely static widget; for anything that reacts to an event it is where the behaviour goes (next sections).
 - Keep the manifest in sync with the code: if any file references \`{myColor}\`, declare a field with \`key: "myColor"\` and mirror its default.`
 
@@ -200,6 +201,9 @@ Every element an action targets must carry a **stable \`data-eeko-el\` id** in \
 
 \`show\` / \`hide\` take an \`animation\` preset name: ${presetList}. The matching keyframes ship in the widget-host shell (\`eeko-*\`) — **never define \`@keyframes\` for them in your CSS**; just name the preset.
 
+- **\`hide\` plays the same preset keyframe in reverse.** \`hide\` + \`slide-up\` exits downward (the entrance undone); there is no separate exit-preset vocabulary.
+- **Presets animate \`opacity\` and \`transform\`.** Never author your own \`transform\` on an element a preset targets — it gets clobbered for the animation's duration. Center panels with auto margins or \`left\`/\`right\`, not \`translateX(-50%)\`.
+
 ### The op vocabulary
 
 ${opsDoc}
@@ -213,6 +217,23 @@ ${bindingsDoc}
 ### Guards
 
 Most ops accept an \`onlyIf\` guard — \`{ "from": "path", "op": "present" | "truthy" | "eq" | "gt", "value": ... }\` — which skips JUST that action when false (no else-branches, no control flow). Example: only set the avatar \`src\` when the payload carries one.
+
+**The fallback idiom** (declarative \`a || b\`): write the fallback first, then overwrite with the preferred value guarded \`onlyIf present\`:
+
+\`\`\`json
+{ "op": "set-text", "target": "el-name", "from": { "from": "username" } },
+{ "op": "set-text", "target": "el-name", "from": { "from": "displayName" }, "onlyIf": { "from": "displayName", "op": "present" } }
+\`\`\`
+
+### Counters
+
+- Counters live **in memory for the current page load**: an iframe reload (OBS scene switch, browser-source refresh) resets every counter to 0. For a count that must survive reloads, track it as a user variable and render it from \`variable_updated\` instead.
+- Give the on-screen counter its initial render value in the markup (e.g. \`<span data-eeko-el="el-count">0</span>\`) — nothing runs before the first event, so the markup is what shows until then.
+- Queued runs execute one at a time against shared live state: a later queued run sees every counter mutation earlier runs made (three queued triggers display 1, 2, 3).
+
+### \`component_dismiss\` and in-flight sequences
+
+A \`component_dismiss\` sequence runs immediately, in parallel with any in-flight \`component_trigger\` run — it does not cancel a pending \`wait\`. The usual \`dismiss → hide\` pattern is safe: the trigger sequence's later \`hide\` simply re-hides an already-hidden element.
 
 ### The canonical alert lifecycle
 
@@ -405,7 +426,7 @@ const LOCAL_TESTING = `## Local testing {#local-testing}
 
 | Command | Event delivered | Payload shape |
 | --- | --- | --- |
-| \`eeko test trigger [--data '{"displayName":"Ada","formattedAmount":"$5.00"}']\` | \`component_trigger\` | Flat record: \`{ componentId, timestamp, ...your --data }\`. Pass the data points your interactions bind. |
+| \`eeko test trigger [--data '{"displayName":"Ada","formattedAmount":"$5.00"}']\` | \`component_trigger\` | Flat record of common trigger dataPoints (\`username\`, \`displayName\`, \`userId\`, \`channelName\`, \`amount\`, \`formattedAmount\`, \`message\`) — \`--data\` overrides or extends. |
 | \`eeko test chat [--platform twitch\\|youtube\\|kick]\` | \`chat_message\` | UnifiedMessage with \`type: "chat_message"\`. |
 | \`eeko test sub [--platform ...] [--tier 1\\|2\\|3] [--gift] [--resub --months N]\` | \`chat_message\` | UnifiedMessage with \`type: "subscription_event"\`. |
 | \`eeko test bits [--amount 100]\` | \`chat_message\` | UnifiedMessage with \`type: "monetary_event"\`. |
@@ -416,7 +437,10 @@ const LOCAL_TESTING = `## Local testing {#local-testing}
 
 There is currently no dedicated subcommand for \`component_dismiss\`, \`component_sync\`, or \`variable_updated\`.
 
-Dev-transport nuance: the CLI sends payloads unwrapped, so bare Phase-2 \`{tokens}\` that rely on trigger-payload keys are not substituted under \`eeko dev\` (variantConfig tokens are). Interaction bindings behave identically in dev and production — one more reason to prefer them.
+Dev/prod parity notes:
+
+- Event payloads, Phase-2 token substitution, and interaction bindings behave identically in dev and production — the dev server normalises every test event to the same wire envelope production publishes.
+- Serving differs cosmetically: \`eeko dev\` serves \`styles.css\` / \`script.js\` as separate Vite-loaded files (for hot reload) where production inlines them into the shell. Substitution and runtime behaviour are the same; don't let the page source confuse you.
 
 ### Validators
 
