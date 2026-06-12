@@ -39,7 +39,7 @@ export type { TemplateOptions } from './types'
 // Widget manifest schema (widget.json) — the single source of truth for a
 // widget's configurable fields, mirrored from the server so a manifest that
 // validates here validates on commit.
-export { validateManifest } from './manifest'
+export { validateManifest, MANIFEST_FIELD_TYPES, MANIFEST_FIELD_SCOPES } from './manifest'
 export type {
   ManifestFieldType,
   ManifestFieldScope,
@@ -48,3 +48,7 @@ export type {
   WidgetManifest,
   ValidateManifestResult,
 } from './manifest'
+
+// Widget linter — static pre-flight over the four widget files.
+export { lintWidget } from './lint'
+export type { LintFile, LintIssue, LintWidgetInput, LintWidgetResult } from './lint'

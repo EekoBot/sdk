@@ -8,6 +8,7 @@ export default defineConfig({
     'src/template/node.ts',
     'src/runtime-bridge.ts',
     'src/interactions/index.ts',
+    'src/authoring-guide/index.ts',
   ],
   format: ['esm'],
   dts: true,

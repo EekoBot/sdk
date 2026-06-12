@@ -74,6 +74,7 @@ export { isChatMessagePayload } from './payloads'
 export type {
   ElTarget,
   Binding,
+  BehaviorBindingKey,
   Guard,
   NumericStyleProp,
   RatioStyleProp,
@@ -87,8 +88,17 @@ export type {
   InteractionEvent,
   QueuePolicy,
   WidgetInteractions,
+  ValidateInteractionsResult,
 } from './interactions'
-export { ACTION_OPS, TIMER_TICK, hasInteractions } from './interactions'
+export {
+  ACTION_OPS,
+  ANIMATION_PRESETS,
+  BEHAVIOR_BINDING_KEYS,
+  QUEUE_POLICIES,
+  TIMER_TICK,
+  hasInteractions,
+  validateInteractions,
+} from './interactions'
 
 // Error classes
 export {
@@ -103,4 +113,4 @@ export {
  * SDK Version. Keep in sync with package.json on each release (ideally inject at
  * build time so it can't drift again).
  */
-export const VERSION = '0.9.1'
+export const VERSION = '0.10.0'

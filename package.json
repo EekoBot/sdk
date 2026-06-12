@@ -1,6 +1,6 @@
 {
   "name": "@eeko/sdk",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Official SDK for building Eeko widgets and overlays",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,6 +30,10 @@
     "./runtime-bridge": {
       "types": "./dist/runtime-bridge.d.ts",
       "import": "./dist/runtime-bridge.js"
+    },
+    "./authoring-guide": {
+      "types": "./dist/authoring-guide/index.d.ts",
+      "import": "./dist/authoring-guide/index.js"
     }
   },
   "files": [

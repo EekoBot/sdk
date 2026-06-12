@@ -34,6 +34,13 @@ import type { EventType } from '../types'
 export type ElTarget = string
 
 /**
+ * The manifest `behavior` keys a `{ fromBehavior }` binding may read
+ * (runtime list for validation / docs).
+ */
+export const BEHAVIOR_BINDING_KEYS = ['displayDuration', 'soundUrl', 'soundVolume'] as const
+export type BehaviorBindingKey = (typeof BEHAVIOR_BINDING_KEYS)[number]
+
+/**
  * Resolves to a value at runtime.
  *  - `from` — a dotted path resolved against the merged data
  *    `payload → variantConfig → globalConfig` (own-property walk only, no
@@ -49,7 +56,7 @@ export type Binding =
   | { fromVariable: string }
   | { fromCounter: string }
   | { literal: string | number }
-  | { fromBehavior: 'displayDuration' | 'soundUrl' | 'soundVolume' }
+  | { fromBehavior: BehaviorBindingKey }
 
 /**
  * Optional single-action guard. Skips ONLY the action it is attached to when
@@ -73,10 +80,12 @@ export type BindableAttr = 'src' | 'alt' | 'title'
 export type BindingMap = Record<ElTarget, { set: 'text' | BindableAttr; value: Binding }>
 
 /**
- * Entrance/exit animation preset names. These map to the `eeko-*` keyframes the
- * widget-host shell already ships, so editor preview and live overlay agree.
+ * Entrance/exit animation preset names (runtime list for validation / docs).
+ * These map to the `eeko-*` keyframes the widget-host shell already ships, so
+ * editor preview and live overlay agree. Widget CSS must never (re)define them.
  */
-export type AnimationPreset = 'none' | 'fade' | 'slide-up' | 'slide-down' | 'zoom' | 'pulse'
+export const ANIMATION_PRESETS = ['none', 'fade', 'slide-up', 'slide-down', 'zoom', 'pulse'] as const
+export type AnimationPreset = (typeof ANIMATION_PRESETS)[number]
 
 /**
  * The enumerated action vocabulary. Discriminated on `op`; targets are
@@ -164,8 +173,10 @@ export interface TimerTickPayload {
 /** Events an interaction sequence may bind to: SDK events + the internal tick. */
 export type InteractionEvent = EventType | typeof TIMER_TICK
 
+/** Queue policy values for rapid repeat events (runtime list for validation / docs). */
+export const QUEUE_POLICIES = ['queue', 'replace', 'skip'] as const
 /** Queue policy for rapid repeat events (default `queue`, or `behavior.queueBehavior`). */
-export type QueuePolicy = 'queue' | 'replace' | 'skip'
+export type QueuePolicy = (typeof QUEUE_POLICIES)[number]
 
 /**
  * The `interactions` block on `widget.json`. Optional and additive — a widget
