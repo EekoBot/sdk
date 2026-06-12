@@ -17,21 +17,7 @@
  */
 import type { WidgetInteractions } from '../interactions/types'
 
-export type ManifestFieldType =
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'color'
-  | 'select'
-  | 'boolean'
-  | 'url'
-  | 'image'
-  | 'audio'
-  | 'video'
-  | 'font'
-  | 'json'
-
-const MANIFEST_FIELD_TYPES: ReadonlyArray<ManifestFieldType> = [
+export const MANIFEST_FIELD_TYPES = [
   'text',
   'textarea',
   'number',
@@ -44,15 +30,15 @@ const MANIFEST_FIELD_TYPES: ReadonlyArray<ManifestFieldType> = [
   'video',
   'font',
   'json',
-]
+] as const
+export type ManifestFieldType = (typeof MANIFEST_FIELD_TYPES)[number]
 
 /**
  * Where a field's value is applied. `global` bakes at serve time; `variant`
  * is substituted per trigger; `both` participates in either scope.
  */
-export type ManifestFieldScope = 'global' | 'variant' | 'both'
-
-const MANIFEST_FIELD_SCOPES: ReadonlyArray<ManifestFieldScope> = ['global', 'variant', 'both']
+export const MANIFEST_FIELD_SCOPES = ['global', 'variant', 'both'] as const
+export type ManifestFieldScope = (typeof MANIFEST_FIELD_SCOPES)[number]
 
 /** A choice for a `select` field. */
 export interface ManifestFieldOption {
