@@ -17,6 +17,10 @@
  *    — the action is a silent no-op at runtime.
  *  - `{tokens}` in HTML/CSS matching no manifest field key and no
  *    globalConfig/variantConfig key — the token stays a literal on screen.
+ *  - token-shaped placeholders naming a known config key the TemplateEngine
+ *    can never substitute (`{accent-color}` — engine tokens are `\w+` only).
+ *  - non-string `html`/`css`/`javascript` inputs — degraded to an
+ *    `invalid-input` error instead of throwing.
  *
  * Warnings (probably wrong, occasionally intentional):
  *  - `innerHTML` in script.js — prefer `textContent` / interactions.
@@ -98,9 +102,36 @@ function referencedElIds(action: Record<string, unknown>): string[] {
   return ids
 }
 
-/** `{token}` / `{{token}}` keys present in a template string. */
+/**
+ * The token patterns the TemplateEngine substitutes, mirrored EXACTLY from
+ * `./engine` (`/\{\{(\w+)\}\}/` then `/\{(\w+)\}/`): `\w+` keys in single or
+ * double braces. The linter must see the same tokens the engine substitutes —
+ * no more, no less — so `unknown-token` never flags a brace group the engine
+ * would leave alone, and never misses one it would fill.
+ */
+const ENGINE_TOKEN_RE = /\{\{(\w+)\}\}|\{(\w+)\}/g
+
+/**
+ * Anything that LOOKS like a token to a human (`{accent-color}`,
+ * `{{user.name}}`) but is not a `\w+` engine token. Used to catch manifest
+ * keys the engine can never substitute.
+ */
+const TOKEN_SHAPED_RE = /\{\{?([A-Za-z0-9_.-]+)\}\}?/g
+
+/** `{token}` / `{{token}}` keys the TemplateEngine would substitute. */
 function tokensIn(source: string): Set<string> {
-  return new Set([...source.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))
+  return new Set(
+    [...source.matchAll(ENGINE_TOKEN_RE)].map((m) => (m[1] !== undefined ? m[1] : m[2]))
+  )
+}
+
+/** Token-shaped placeholders the engine can NOT substitute (non-`\w+` keys). */
+function unsubstitutableTokensIn(source: string): Set<string> {
+  const out = new Set<string>()
+  for (const m of source.matchAll(TOKEN_SHAPED_RE)) {
+    if (!/^\w+$/.test(m[1])) out.add(m[1])
+  }
+  return out
 }
 
 /**
@@ -112,13 +143,31 @@ export function lintWidget(input: LintWidgetInput): LintWidgetResult {
   const errors: LintIssue[] = []
   const warnings: LintIssue[] = []
 
-  const html = stripHtmlComments(input.html ?? '')
-  const css = stripCssComments(input.css ?? '')
-  const js = stripJsComments(input.javascript ?? '')
+  // Public entrypoint: external JS callers can pass anything. Non-string file
+  // contents degrade into an `invalid-input` lint error instead of throwing
+  // inside the strip*/regex helpers. Nullish stays tolerated as "file absent".
+  const safeInput: Partial<Record<keyof LintWidgetInput, unknown>> =
+    input !== null && typeof input === 'object' ? input : {}
+
+  function coerceFileInput(field: 'html' | 'css' | 'javascript', file: LintFile): string {
+    const value = safeInput[field]
+    if (value === undefined || value === null) return ''
+    if (typeof value === 'string') return value
+    errors.push({
+      file,
+      rule: 'invalid-input',
+      message: `\`${field}\` must be a string (got ${Array.isArray(value) ? 'array' : typeof value}) — its content checks were skipped`,
+    })
+    return ''
+  }
+
+  const html = stripHtmlComments(coerceFileInput('html', 'index.html'))
+  const css = stripCssComments(coerceFileInput('css', 'styles.css'))
+  const js = stripJsComments(coerceFileInput('javascript', 'script.js'))
 
   // ── widget.json ──────────────────────────────────────────────────────────
   let manifest: WidgetManifest | null = null
-  const manifestResult = validateManifest(input.manifest)
+  const manifestResult = validateManifest(safeInput.manifest)
   if (manifestResult.ok) {
     manifest = manifestResult.manifest
   } else {
@@ -247,6 +296,20 @@ export function lintWidget(input: LintWidgetInput): LintWidgetResult {
             file,
             rule: 'unknown-token',
             message: `{${token}} matches no field key and no globalConfig/variantConfig key — it stays a literal on screen. Declare the field (mirroring its default in globalConfig), or bind the value via interactions instead`,
+          })
+        }
+      }
+      // A placeholder naming a known key the engine can never substitute
+      // (config keys may be any string, but engine tokens are \w+ only).
+      for (const candidate of unsubstitutableTokensIn(source)) {
+        if (knownKeys.has(candidate)) {
+          const renamed = candidate.replace(/[^A-Za-z0-9_]+(\w)?/g, (_, c: string | undefined) =>
+            c ? c.toUpperCase() : ''
+          )
+          errors.push({
+            file,
+            rule: 'unsubstitutable-token',
+            message: `{${candidate}} can never be substituted — the TemplateEngine only recognises \\w+ tokens (letters, digits, underscore). Rename the "${candidate}" config key (e.g. "${renamed}") and update the placeholder, or bind the value via interactions instead`,
           })
         }
       }

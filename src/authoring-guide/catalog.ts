@@ -54,9 +54,10 @@ export const EVENT_CATALOG: Record<EventType, EventDoc> = {
     summary:
       'The widget’s live data or config changed (interactive widgets: polls, counters); re-render from the new values.',
     handlerShape: 'unwrapped-payload',
-    payloadDoc: `A flat record of the updated values. May carry:
+    payloadDoc: `A flat record of the updated values. Carries:
+- \`data: Record<string, unknown>\` — update data for stateful widgets
 - \`component_id?: string\`
-- \`data?: Record<string, unknown>\` — update data for stateful widgets
+- \`state_update?: Record<string, unknown>\` — state changes
 - \`timestamp?: number\`
 Phase-2 token substitution re-runs on this event automatically.`,
     example: `sdk.on('component_update', function (data) {
@@ -160,16 +161,16 @@ export interface OpDoc {
 export const OP_CATALOG: Record<ActionOp, OpDoc> = {
   show: {
     summary:
-      'Reveal an element, optionally with an entrance animation preset. Yields until the animation settles (sequence-ordering point).',
+      'Reveal an element with an entrance animation preset (default `fade` when omitted; use `"none"` for no animation). Yields until the animation settles (sequence-ordering point).',
     params:
-      '`target` (data-eeko-el id, required); `animation?` (preset name); `durationMs?` (number, default 400); `onlyIf?` (guard)',
+      '`target` (data-eeko-el id, required); `animation?` (preset name, default "fade"); `durationMs?` (number, default 400); `onlyIf?` (guard)',
     example: `{ "op": "show", "target": "el-alert", "animation": "slide-up" }`,
   },
   hide: {
     summary:
-      'Hide an element, optionally with an exit animation (the preset keyframe reversed). Sets visibility:hidden after the animation settles.',
+      'Hide an element with an exit animation (the preset keyframe reversed; default `fade` when omitted). Sets visibility:hidden after the animation settles.',
     params:
-      '`target` (data-eeko-el id, required); `animation?` (preset name); `durationMs?` (number, default 400); `onlyIf?` (guard)',
+      '`target` (data-eeko-el id, required); `animation?` (preset name, default "fade"); `durationMs?` (number, default 400); `onlyIf?` (guard)',
     example: `{ "op": "hide", "target": "el-alert", "animation": "fade" }`,
   },
   'add-class': {
@@ -279,7 +280,7 @@ export const BINDING_KINDS: readonly BindingKindDoc[] = [
     kind: 'from',
     syntax: `{ "from": "dotted.path" }`,
     semantics:
-      'Reads a dotted path from the merged data: event payload over variantConfig over globalConfig (later wins; own-property walk only — no bracket or prototype access). Flat alert paths: `displayName`, `formattedAmount`, `profilePictureUrl`. Nested chat paths: `user.displayName`, `message.text`. Variable path: `variable.value`. Config keys (e.g. `goal`) resolve from globalConfig when the payload doesn’t carry them.',
+      'Reads a dotted path from the merged data: event payload over variantConfig over globalConfig (the payload wins on collisions; own-property walk only — no bracket or prototype access). Flat alert paths: `displayName`, `formattedAmount`, `profilePictureUrl`. Nested chat paths: `user.displayName`, `message.text`. Variable path: `variable.value`. Config keys (e.g. `goal`) resolve from globalConfig when the payload doesn’t carry them.',
   },
   {
     kind: 'fromVariable',

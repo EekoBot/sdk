@@ -107,7 +107,7 @@ The widget runs inside a sandboxed cross-origin iframe (\`*.widgets.eeko.app\`) 
 
 const THE_MANIFEST = `## The manifest (widget.json) {#the-manifest}
 
-Required keys: \`name\` (non-empty string), \`componentType\` (non-empty string — e.g. \`alert\`, \`chat\`, \`overlay\`, \`countdown\`, \`poll\`, \`banner\`), and \`fields\` (an **array** of field schemas, not an object).
+Required keys: \`name\` (non-empty string) and \`componentType\` (non-empty string — e.g. \`alert\`, \`chat\`, \`overlay\`, \`countdown\`, \`poll\`, \`banner\`). \`fields\` is an **array** of field schemas (not an object); the validator defaults it to \`[]\` when omitted, but every widget with configurable values declares it.
 
 ${fence}json
 {
@@ -166,7 +166,7 @@ const TWO_PHASE_TOKENS = `## Two-phase token substitution {#two-phase-tokens}
 - Values are escaped per context (HTML / CSS / JS-string). You never need to escape config values yourself.
 - A token with no matching config key stays a literal \`{token}\` — this is the "empty globalConfig breaks the widget" failure.
 
-**Phase 2 — per event, in the iframe.** On every \`component_trigger\` / \`component_update\` / \`component_sync\` the SDK walks the DOM (skipping \`<script>\` / \`<style>\` / \`<template>\`) and replaces remaining \`{tokens}\` in text nodes and attribute values with \`variantConfig\` merged with the event payload. Fully automatic — you call nothing.
+**Phase 2 — per event, in the iframe.** On every \`component_trigger\` / \`component_update\` / \`component_sync\` the SDK walks the DOM (skipping \`<script>\` / \`<style>\` / \`<template>\`) and replaces remaining \`{tokens}\` in text nodes and attribute values with the event payload merged over \`variantConfig\` (payload wins on key collisions). Fully automatic — you call nothing.
 
 **Which to use when:**
 
@@ -264,11 +264,11 @@ The alert panel starts hidden in CSS (\`visibility: hidden\`); the \`show\` op r
 
 ### Trigger payload field names
 
-\`from\` paths in a \`component_trigger\` sequence read **canonical, normalised data points** — never raw platform keys (it is \`displayName\`, NOT \`chatter_user_name\`). Every trigger delivers \`triggerType\`, \`timestamp\`, and \`platform\`; common extras are \`username\`, \`displayName\`, \`profilePictureUrl\`, \`message\`, \`amount\`, \`currency\`, \`formattedAmount\`, \`tier\`, \`months\`, \`giftCount\`, \`isAnonymous\` — but presence varies by trigger (a follow has no \`amount\`), so bind only fields the wired trigger actually extracts. Prefer \`formattedAmount\` (already currency-formatted) over re-formatting \`amount\`.
+\`from\` paths in a \`component_trigger\` sequence read **canonical, normalised data points** — never raw platform keys (it is \`displayName\`, NOT \`chatter_user_name\`). The payload is a flat record of the wired trigger's extracted data points merged with the owner's configured field values; **no key is guaranteed across all triggers.** Common data points are \`username\`, \`displayName\`, \`profilePictureUrl\`, \`message\`, \`amount\`, \`currency\`, \`formattedAmount\`, \`tier\`, \`months\`, \`giftCount\` — but presence varies by trigger (a follow has no \`amount\`), so bind only fields the wired trigger actually extracts, and guard optional ones with \`onlyIf present\`. Prefer \`formattedAmount\` (already currency-formatted) over re-formatting \`amount\`.
 
 ### Opting out
 
-Hand-written \`script.js\` can disable the interpreter with \`window.eekoSDK.interactions.disable()\` at the very top (or \`disableEvent(name)\` per event). Mixing interpreted sequences and custom handlers on the same event is allowed but rarely what you want.`
+Hand-written \`script.js\` can disable the interpreter with \`window.eekoSDK.interactions.disable()\` at the very top (or \`disableEvent(name)\` per event). One caveat: the interpreter boots before \`script.js\` runs, so a \`component_mount\` sequence may already have fired by the time \`disable()\` executes — a fully hand-written widget should ship no \`interactions\` sequences at all rather than rely on disabling them. Mixing interpreted sequences and custom handlers on the same event is allowed but rarely what you want.`
 
 const ARCHETYPE_RECIPES = `## Archetype recipes {#archetype-recipes}
 
@@ -290,7 +290,7 @@ On \`component_mount\`: \`start-timer\` (\`mode: "countdown"\`, \`intervalMs: 10
 The SAME sequence runs on BOTH \`component_sync\` (initial state) and \`component_update\` (live changes): per option, \`set-text\` the label → \`set-style-ratio\` the bar \`width\` to votes/total (clamped) → \`set-text\` the percent. Optional option rows (C/D) are \`visibility:hidden\` in the markup and revealed with \`show\` \`onlyIf\` their text is \`present\` in the payload. Always visible.
 
 ### Banner (rotating) (\`componentType: "banner"\`)
-On \`component_mount\`: \`start-timer\` (\`mode: "interval"\`, e.g. \`intervalMs: 6000\`) → \`show-nth\` the container's first child by \`{ "fromCounter": "idx" }\` (\`wrap: true\`). On \`${TIMER_TICK}\`: \`increment-counter\` \`idx\` → \`show-nth\` again. Messages are static Phase-1 config tokens (\`{message1}\`, \`{message2}\`, …). Always visible.`
+On \`component_mount\`: \`start-timer\` (\`mode: "interval"\`, e.g. \`intervalMs: 6000\`) → \`set-counter\` \`idx\` from \`{ "literal": 0 }\` → \`show-nth\` the container's first child by \`{ "fromCounter": "idx" }\` (\`wrap: true\`). The \`set-counter\` init is required: an unset counter reads as undefined and makes \`show-nth\` a silent no-op. On \`${TIMER_TICK}\`: \`increment-counter\` \`idx\` → \`show-nth\` again. Messages are static Phase-1 config tokens (\`{message1}\`, \`{message2}\`, …). Always visible.`
 
 const THE_SDK_ESCAPE_HATCH = `## The SDK escape hatch — hand-written script.js {#the-sdk-escape-hatch}
 
@@ -304,6 +304,7 @@ window.eekoSDK = {
   off(event, handler): void     // unsubscribe
   getState(): { componentId, userId, globalConfig, variantConfig }
   isReady(): boolean
+  interactions: { disable(), disableEvent(name), isManaged() }  // interpreter opt-out (see "Opting out")
 }
 ${fence}
 
@@ -378,7 +379,7 @@ ${fence}
 
 const FORBIDDEN_PATTERNS_SECTION = `## Forbidden patterns {#forbidden-patterns}
 
-Each of these ships a broken (or rejected) widget. \`lintWidget\` / \`eeko build\` flags them.
+Each of these ships a broken (or rejected) widget. \`lintWidget\` / \`eeko build\` flags the statically detectable ones — full-document HTML, external file refs, \`window.widget\` / \`.onShow\` / \`.onHide\`, and \`eval\` / \`new Function\` as **errors**; \`innerHTML\` and \`eeko-*\` keyframes as **warnings**. The data-shape mistakes (legacy chat fields, \`JSON.parse\` of variable values) and network calls are not lintable — they surface only at runtime, so never write them in the first place.
 
 ${forbiddenDoc}
 

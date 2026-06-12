@@ -66,8 +66,8 @@ function checkBinding(value: unknown, path: string, errors: string[]): void {
   const kind = present[0]
   const v = value[kind]
   if (kind === 'literal') {
-    if (typeof v !== 'string' && typeof v !== 'number') {
-      errors.push(`${path}.literal: must be a string or number`)
+    if (typeof v !== 'string' && !(typeof v === 'number' && Number.isFinite(v))) {
+      errors.push(`${path}.literal: must be a string or finite number`)
     }
   } else if (kind === 'fromBehavior') {
     if (typeof v !== 'string' || !(BEHAVIOR_BINDING_KEYS as readonly string[]).includes(v)) {
@@ -90,6 +90,13 @@ function checkGuard(value: unknown, path: string, errors: string[]): void {
   }
   if (typeof value.op !== 'string' || !GUARD_OPS.has(value.op)) {
     errors.push(`${path}.op: must be one of present/truthy/eq/gt`)
+  }
+  if (
+    value.value !== undefined &&
+    typeof value.value !== 'string' &&
+    !(typeof value.value === 'number' && Number.isFinite(value.value))
+  ) {
+    errors.push(`${path}.value: must be a string or finite number when present`)
   }
 }
 
@@ -121,8 +128,20 @@ function optionalNumber(
   path: string,
   errors: string[]
 ): void {
-  if (action[key] !== undefined && typeof action[key] !== 'number') {
-    errors.push(`${path}.${key}: must be a number when present`)
+  const v = action[key]
+  if (v !== undefined && !(typeof v === 'number' && Number.isFinite(v))) {
+    errors.push(`${path}.${key}: must be a finite number when present`)
+  }
+}
+
+function optionalBoolean(
+  action: Record<string, unknown>,
+  key: string,
+  path: string,
+  errors: string[]
+): void {
+  if (action[key] !== undefined && typeof action[key] !== 'boolean') {
+    errors.push(`${path}.${key}: must be a boolean when present`)
   }
 }
 
@@ -185,6 +204,9 @@ function checkAction(action: unknown, path: string, errors: string[]): void {
         errors.push(`${path}.prop: must be one of width/height/opacity/--eeko-progress`)
       }
       checkBinding(action.from, `${path}.from`, errors)
+      if (action.unit !== undefined && action.unit !== 'px' && action.unit !== '%' && action.unit !== '') {
+        errors.push(`${path}.unit: must be "px", "%", or "" when present`)
+      }
       optionalNumber(action, 'min', path, errors)
       optionalNumber(action, 'max', path, errors)
       optionalNumber(action, 'multiplyBy', path, errors)
@@ -197,11 +219,16 @@ function checkAction(action: unknown, path: string, errors: string[]): void {
       }
       checkBinding(action.numerator, `${path}.numerator`, errors)
       checkBinding(action.denominator, `${path}.denominator`, errors)
+      if (action.unit !== undefined && action.unit !== '%') {
+        errors.push(`${path}.unit: must be "%" when present`)
+      }
+      optionalBoolean(action, 'clamp', path, errors)
       return
     }
     case 'clone-template': {
       requireString(action, 'templateRef', path, errors)
       requireString(action, 'into', path, errors)
+      optionalBoolean(action, 'prepend', path, errors)
       if (!isPlainObject(action.bindings)) {
         errors.push(`${path}.bindings: missing required binding map`)
       } else {
@@ -231,6 +258,7 @@ function checkAction(action: unknown, path: string, errors: string[]): void {
     case 'show-nth': {
       requireString(action, 'container', path, errors)
       checkBinding(action.index, `${path}.index`, errors)
+      optionalBoolean(action, 'wrap', path, errors)
       return
     }
     case 'start-timer': {
@@ -268,9 +296,9 @@ function checkAction(action: unknown, path: string, errors: string[]): void {
     }
     case 'wait': {
       const ms = action.ms
-      if (typeof ms === 'number') return
+      if (typeof ms === 'number' && Number.isFinite(ms)) return
       if (isPlainObject(ms) && ms.fromBehavior === 'displayDuration') return
-      errors.push(`${path}.ms: must be a number or { "fromBehavior": "displayDuration" }`)
+      errors.push(`${path}.ms: must be a finite number or { "fromBehavior": "displayDuration" }`)
       return
     }
   }

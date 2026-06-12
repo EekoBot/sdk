@@ -209,6 +209,67 @@ describe('lintWidget', () => {
       const result = lintWidget(input)
       expect(rules(result.errors)).not.toContain('unknown-token')
     })
+
+    it('sees {{double-brace}} tokens exactly like the engine does', () => {
+      const input = validWidget()
+      input.html += `<div data-eeko-el="el-x">{{mysteryToken}}</div>`
+      const result = lintWidget(input)
+      const found = result.errors.filter((e) => e.rule === 'unknown-token')
+      expect(found.some((e) => e.message.includes('mysteryToken'))).toBe(true)
+    })
+
+    it('flags a hyphenated/dotted config key used as a placeholder (engine cannot substitute it)', () => {
+      const input = validWidget()
+      const manifest = input.manifest as Record<string, unknown>
+      ;(manifest.fields as unknown[]).push({
+        key: 'accent-color',
+        label: 'Accent',
+        type: 'color',
+        scope: 'global',
+        defaultValue: '#fff',
+      })
+      manifest.globalConfig = {
+        ...(manifest.globalConfig as Record<string, unknown>),
+        'accent-color': '#fff',
+      }
+      ;(manifest.variantConfig as Record<string, unknown>)['user.name'] = 'Someone'
+      input.css += `.x { color: {accent-color}; }`
+      input.html += `<div data-eeko-el="el-x">{{user.name}}</div>`
+      const result = lintWidget(input)
+      const found = result.errors.filter((e) => e.rule === 'unsubstitutable-token')
+      expect(found.length).toBe(2)
+      const cssHit = found.find((e) => e.file === 'styles.css')
+      expect(cssHit?.message).toContain('accent-color')
+      expect(cssHit?.message).toContain('accentColor') // suggested rename
+      expect(found.find((e) => e.file === 'index.html')?.message).toContain('user.name')
+      // The engine ignores these, so unknown-token must NOT also fire for them.
+      expect(rules(result.errors)).not.toContain('unknown-token')
+    })
+
+    it('ignores token-shaped text that matches no config key (CSS blocks, prose)', () => {
+      const input = validWidget()
+      input.html += `<div data-eeko-el="el-x">{semi-final}</div>`
+      const result = lintWidget(input)
+      expect(rules(result.errors)).not.toContain('unsubstitutable-token')
+      expect(rules(result.errors)).not.toContain('unknown-token')
+    })
+
+    it('degrades non-string html/css/javascript into invalid-input errors instead of throwing', () => {
+      const input = validWidget() as unknown as Record<string, unknown>
+      input.html = 42
+      input.css = { nope: true }
+      input.javascript = null // nullish stays tolerated
+      const result = lintWidget(input as unknown as LintWidgetInput)
+      const found = result.errors.filter((e) => e.rule === 'invalid-input')
+      expect(found.map((e) => e.file).sort()).toEqual(['index.html', 'styles.css'])
+      expect(found[0].message).toContain('must be a string')
+    })
+
+    it('survives a completely malformed input value', () => {
+      const result = lintWidget(null as unknown as LintWidgetInput)
+      expect(result.errors.length).toBeGreaterThan(0) // manifest-invalid at minimum
+      expect(rules(result.errors)).toContain('manifest-invalid')
+    })
   })
 
   describe('warnings', () => {
