@@ -85,9 +85,17 @@ export class TemplateEngine {
    * Uses whitelist approach - only allows safe CSS value characters
    */
   private escapeCSS(str: string): string {
-    // Allow: alphanumeric, #, (, ), ,, ., -, space, %
-    // This covers: colors (#fff, rgb(), rgba()), numbers, units, etc.
-    return str.replace(/[^a-zA-Z0-9#(),.\-\s%]/g, (char) => {
+    // Allow: alphanumeric, #, (, ), ,, ., -, space, %, and quotes.
+    // Covers colors (#fff, rgb(), rgba()), numbers, units, and quoted
+    // string values like font-family `'Courier New', monospace` (quotes are
+    // a normal, required part of CSS string syntax).
+    //
+    // Quotes are safe here: the structural chars that would let a value
+    // break out of its declaration / rule / `<style>` block — `; { } : < > /`
+    // — remain outside the whitelist and are hex-escaped, so a quoted value
+    // can never terminate a declaration or inject a new rule. External
+    // `url()` resources are blocked by the widget iframe CSP, not the escaper.
+    return str.replace(/[^a-zA-Z0-9#(),.\-\s%'"]/g, (char) => {
       return '\\' + char.charCodeAt(0).toString(16) + ' '
     })
   }
