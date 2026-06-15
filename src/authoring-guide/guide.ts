@@ -118,6 +118,7 @@ ${fence}json
     { "key": "accentColor", "label": "Accent colour", "type": "color", "scope": "global", "defaultValue": "#a78bfa" }
   ],
   "behavior": { "displayDuration": 5000 },
+  "canvas": { "width": 1920, "height": 1080, "preset": "landscape-1080" },
   "globalConfig": { "backgroundColor": "#1e1e2e", "accentColor": "#a78bfa" },
   "variantConfig": {},
   "interactions": { "version": 1, "on": {} }
@@ -153,6 +154,7 @@ Each entry in \`fields\`:
   The keys readable through a \`{ fromBehavior }\` binding are exactly: ${behaviorKeyList}.
   The widget's owner edits \`behavior\` values in Studio's config surface (they are not \`fields\` and need no field schema entry) — "configured display duration" means \`behavior.displayDuration\`, not a new field.
 - \`interactions\` is optional only for a genuinely static widget; for anything that reacts to an event it is where the behaviour goes (next sections).
+- \`canvas\` is the widget's **design surface** — \`{ "width": <px>, "height": <px>, "preset"?: "<id>" }\`. Orientation is derived from width vs height. Design your HTML/CSS as if the viewport is exactly \`width × height\`; the runtime zoom-to-fits it into the iframe / OBS browser source. Presets: \`landscape-1080\` (1920×1080, default), \`landscape-720\` (1280×720), \`vertical-1080\` (1080×1920, for TikTok / YouTube-Shorts), \`vertical-720\` (720×1280), \`square-1080\` (1080×1080), or custom \`width\`/\`height\` (omit \`preset\`) for a small self-contained widget. Optional — a widget without \`canvas\` is treated as 1920×1080 landscape.
 - Keep the manifest in sync with the code: if any file references \`{myColor}\`, declare a field with \`key: "myColor"\` and mirror its default.`
 
 const TWO_PHASE_TOKENS = `## Two-phase token substitution {#two-phase-tokens}

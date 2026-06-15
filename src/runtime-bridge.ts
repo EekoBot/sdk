@@ -63,7 +63,8 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
     componentId: undefined,
     userId: undefined,
     globalConfig: {},
-    variantConfig: {}
+    variantConfig: {},
+    canvas: undefined
   };
   var ready = false;
 
@@ -114,7 +115,8 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
       componentId: 'dev-component',
       userId: 'dev-user',
       globalConfig: {},
-      variantConfig: {}
+      variantConfig: {},
+      canvas: undefined
     };
     ready = false;
   }
@@ -240,6 +242,35 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
     processDOM(merged);
   }
 
+  // ── Canvas: pin design px + zoom-to-fit ────────────────────────────────
+  //
+  // The author designs against a fixed pixel canvas (state.canvas). We pin the
+  // platform #widget-root to those exact dimensions and scale it to fit the
+  // iframe viewport, preserving aspect ratio and centering (letterbox). In an
+  // OBS browser source sized to the canvas this resolves to scale 1 (pixel-
+  // perfect); in a preview pane shaped to the canvas aspect it fills exactly;
+  // any other size letterboxes cleanly. Legacy widgets (no canvas) are left
+  // untouched and fill 100% as before.
+  function applyCanvas() {
+    var c = state.canvas;
+    var root = document.getElementById('widget-root');
+    if (!root || !c) return;
+    var w = Number(c.width), h = Number(c.height);
+    if (!(w > 0) || !(h > 0)) return;
+    root.style.position = 'absolute';
+    root.style.top = '0';
+    root.style.left = '0';
+    root.style.width = w + 'px';
+    root.style.height = h + 'px';
+    root.style.transformOrigin = 'top left';
+    var vw = window.innerWidth || w;
+    var vh = window.innerHeight || h;
+    var scale = Math.min(vw / w, vh / h);
+    var offsetX = (vw - w * scale) / 2;
+    var offsetY = (vh - h * scale) / 2;
+    root.style.transform = 'translate(' + offsetX + 'px, ' + offsetY + 'px) scale(' + scale + ')';
+  }
+
   // Pick up shell-injected seed state synchronously so the first paint
   // already has variantConfig values filled in before author JS runs.
   // The shell places this script inside <body> after the widget markup,
@@ -266,6 +297,13 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
   } catch (e) {
     console.error('[eekoSDK] __EEKO_INIT__ read failed', e);
   }
+
+  // Fit the (possibly already-injected) canvas now, and re-fit whenever the
+  // iframe viewport changes (OBS source resize, preview pane reflow).
+  try {
+    applyCanvas();
+    window.addEventListener('resize', applyCanvas);
+  } catch (e) { /* no canvas / no DOM — harmless */ }
 
   // ── Transport: dev (WebSocket) or production (parent postMessage) ────────
 
@@ -338,6 +376,7 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
           if (msg.command === 'init') {
             setState(msg.state || {});
             ready = true;
+            applyCanvas();
             if (state.variantConfig) processDOM(state.variantConfig);
             // Parity with the production postMessage path's eeko:init, which
             // emits component_mount so timer-driven / mount-bound widgets (and
@@ -363,6 +402,7 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
       if (msg.type === 'eeko:init') {
         setState(msg.state || {});
         ready = true;
+        applyCanvas();
         if (state.variantConfig) processDOM(state.variantConfig);
         emit('component_mount', { componentId: state.componentId, type: 'widget' });
         return;
@@ -374,7 +414,9 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
     });
 
     try {
-      window.parent.postMessage({ type: 'eeko:ready' }, '*');
+      // Report the canvas so the parent preview host can shape its iframe
+      // wrapper to the widget's aspect ratio before/while the widget paints.
+      window.parent.postMessage({ type: 'eeko:ready', canvas: state.canvas }, '*');
     } catch (e) { /* sandboxed frames may block this; ignore */ }
   }
 })();
