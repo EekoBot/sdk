@@ -70,6 +70,21 @@ export interface ManifestField {
 }
 
 /**
+ * The widget's design surface — the fixed pixel canvas the author works
+ * against. Orientation is derived from width vs height (never stored). The
+ * runtime bridge pins the widget root to these dimensions and zoom-to-fits it
+ * into whatever viewport the iframe is given.
+ */
+export interface WidgetCanvas {
+  /** Design width in CSS px. */
+  width: number
+  /** Design height in CSS px. */
+  height: number
+  /** Optional id of the preset the author picked, for UI round-trip. */
+  preset?: string
+}
+
+/**
  * The full `widget.json` manifest. `globalConfig`/`variantConfig` carry the
  * serve-time default values keyed by field `key`.
  */
@@ -85,6 +100,11 @@ export interface WidgetManifest {
    * lives in nexus-api on commit — this is only a structural pre-flight.
    */
   interactions?: WidgetInteractions
+  /**
+   * Optional design surface (size + orientation). Absent on legacy widgets,
+   * which the host treats as a default 1920×1080 landscape canvas.
+   */
+  canvas?: WidgetCanvas
   globalConfig: Record<string, unknown>
   variantConfig: Record<string, unknown>
 }
@@ -168,6 +188,25 @@ export function validateManifest(input: unknown): ValidateManifestResult {
     }
   }
 
+  const rawCanvas = input.canvas
+  let canvas: WidgetCanvas | undefined
+  if (rawCanvas !== undefined) {
+    if (!isPlainObject(rawCanvas)) {
+      errors.push('`canvas` must be an object when present')
+    } else {
+      const width = Number(rawCanvas.width)
+      const height = Number(rawCanvas.height)
+      if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+        errors.push('`canvas` must have positive numeric `width` and `height`')
+      } else {
+        canvas = { width: Math.round(width), height: Math.round(height) }
+        if (typeof rawCanvas.preset === 'string' && rawCanvas.preset.length > 0) {
+          canvas.preset = rawCanvas.preset
+        }
+      }
+    }
+  }
+
   const globalConfig = input.globalConfig
   if (globalConfig !== undefined && !isPlainObject(globalConfig)) {
     errors.push('`globalConfig` must be an object when present')
@@ -192,6 +231,7 @@ export function validateManifest(input: unknown): ValidateManifestResult {
       ...(isPlainObject(interactions)
         ? { interactions: interactions as unknown as WidgetInteractions }
         : {}),
+      ...(canvas ? { canvas } : {}),
       globalConfig: isPlainObject(globalConfig) ? globalConfig : {},
       variantConfig: isPlainObject(variantConfig) ? variantConfig : {},
     },

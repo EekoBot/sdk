@@ -46,6 +46,7 @@ export type {
   ManifestFieldOption,
   ManifestField,
   WidgetManifest,
+  WidgetCanvas,
   ValidateManifestResult,
 } from './manifest'
 

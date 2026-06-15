@@ -113,4 +113,4 @@ export {
  * SDK Version. Keep in sync with package.json on each release (ideally inject at
  * build time so it can't drift again).
  */
-export const VERSION = '0.10.2'
+export const VERSION = '0.11.0'

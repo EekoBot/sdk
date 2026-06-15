@@ -113,4 +113,45 @@ describe('validateManifest', () => {
     })
     expect(result.ok).toBe(false)
   })
+
+  describe('canvas', () => {
+    it('accepts and preserves a valid canvas block', () => {
+      const result = validateManifest({
+        name: 'Vertical alert',
+        componentType: 'alert',
+        canvas: { width: 1080, height: 1920, preset: 'vertical-1080' },
+      })
+      if (!result.ok) throw new Error(result.errors.join(', '))
+      expect(result.manifest.canvas).toEqual({
+        width: 1080,
+        height: 1920,
+        preset: 'vertical-1080',
+      })
+    })
+
+    it('omits canvas when absent (legacy widgets)', () => {
+      const result = validateManifest({ name: 'A', componentType: 'alert' })
+      if (!result.ok) throw new Error('expected ok')
+      expect(result.manifest.canvas).toBeUndefined()
+    })
+
+    it('rejects a canvas with non-positive dimensions', () => {
+      expect(
+        validateManifest({ name: 'A', componentType: 'alert', canvas: { width: 0, height: 100 } }).ok
+      ).toBe(false)
+      expect(
+        validateManifest({
+          name: 'A',
+          componentType: 'alert',
+          canvas: { width: 100, height: -5 },
+        }).ok
+      ).toBe(false)
+    })
+
+    it('rejects a canvas that is not an object', () => {
+      expect(
+        validateManifest({ name: 'A', componentType: 'alert', canvas: '1920x1080' }).ok
+      ).toBe(false)
+    })
+  })
 })
