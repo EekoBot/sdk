@@ -82,4 +82,29 @@ describe('runtime bridge canvas scaling', () => {
     window.dispatchEvent(new Event('resize'))
     expect(root().style.transform).toBe('translate(0px, 0px) scale(1)')
   })
+
+  it('clears the pinned styles when the canvas is removed (reset reconcile)', () => {
+    boot({ canvas: { width: 1000, height: 1000 } })
+    expect(root().style.transform).not.toBe('')
+    // Simulate a reset/re-init to a canvas-less (legacy) widget, then re-fit.
+    ;(window as any).eekoSDK._setState({ canvas: undefined })
+    window.dispatchEvent(new Event('resize'))
+    expect(root().style.transform).toBe('')
+    expect(root().style.width).toBe('')
+    expect(root().style.position).toBe('')
+  })
+
+  it('applies the canvas after DOMContentLoaded when #widget-root is absent at boot (head injection)', () => {
+    delete (window as any).eekoSDK
+    delete (window as any).__EEKO_DEV__
+    setViewport(500, 500)
+    document.body.innerHTML = '' // no #widget-root yet
+    ;(window as any).__EEKO_INIT__ = { canvas: { width: 1000, height: 500 } }
+    ;(0, eval)(RUNTIME_BRIDGE_JS)
+    // Root appears once the document finishes parsing:
+    document.body.innerHTML = '<div id="widget-root" data-instance-id="t"></div>'
+    document.dispatchEvent(new Event('DOMContentLoaded'))
+    expect(root().style.width).toBe('1000px')
+    expect(root().style.transform).toBe('translate(0px, 125px) scale(0.5)')
+  })
 })

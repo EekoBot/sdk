@@ -252,9 +252,22 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
   // any other size letterboxes cleanly. Legacy widgets (no canvas) are left
   // untouched and fill 100% as before.
   function applyCanvas() {
-    var c = state.canvas;
     var root = document.getElementById('widget-root');
-    if (!root || !c) return;
+    if (!root) return;
+    var c = state.canvas;
+    if (!c) {
+      // No canvas (legacy widget, or a reset to a canvas-less widget): clear any
+      // pinning a previous canvas left behind so the root reverts to filling its
+      // container. Reconciling (not early-return) keeps applyCanvas idempotent.
+      root.style.position = '';
+      root.style.top = '';
+      root.style.left = '';
+      root.style.width = '';
+      root.style.height = '';
+      root.style.transformOrigin = '';
+      root.style.transform = '';
+      return;
+    }
     var w = Number(c.width), h = Number(c.height);
     if (!(w > 0) || !(h > 0)) return;
     root.style.position = 'absolute';
@@ -299,9 +312,20 @@ const BRIDGE_IIFE_JS = `/* @eeko/sdk runtime bridge */
   }
 
   // Fit the (possibly already-injected) canvas now, and re-fit whenever the
-  // iframe viewport changes (OBS source resize, preview pane reflow).
+  // iframe viewport changes (OBS source resize, preview pane reflow). If
+  // #widget-root doesn't exist yet (a host that injects the bridge into <head>
+  // before the body), defer the first fit to DOMContentLoaded — mirroring the
+  // late-body fallback the variant-substitution path above uses.
   try {
-    applyCanvas();
+    if (document.getElementById('widget-root')) {
+      applyCanvas();
+    } else {
+      var onRootReady = function () {
+        document.removeEventListener('DOMContentLoaded', onRootReady);
+        applyCanvas();
+      };
+      document.addEventListener('DOMContentLoaded', onRootReady);
+    }
     window.addEventListener('resize', applyCanvas);
   } catch (e) { /* no canvas / no DOM — harmless */ }
 
