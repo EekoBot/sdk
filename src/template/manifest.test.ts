@@ -153,5 +153,23 @@ describe('validateManifest', () => {
         validateManifest({ name: 'A', componentType: 'alert', canvas: '1920x1080' }).ok
       ).toBe(false)
     })
+
+    it('clamps out-of-bounds dimensions to [16, 7680] (matching the server)', () => {
+      const big = validateManifest({
+        name: 'A',
+        componentType: 'alert',
+        canvas: { width: 8000, height: 1080 }
+      })
+      if (!big.ok) throw new Error(big.errors.join(', '))
+      expect(big.manifest.canvas).toEqual({ width: 7680, height: 1080 })
+
+      const tiny = validateManifest({
+        name: 'A',
+        componentType: 'alert',
+        canvas: { width: 8, height: 1080 }
+      })
+      if (!tiny.ok) throw new Error(tiny.errors.join(', '))
+      expect(tiny.manifest.canvas).toEqual({ width: 16, height: 1080 })
+    })
   })
 })

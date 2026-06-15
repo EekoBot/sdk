@@ -84,6 +84,14 @@ export interface WidgetCanvas {
   preset?: string
 }
 
+/** Canvas dimension bounds — kept in sync with shared-types `normalizeCanvas`. */
+const CANVAS_MIN_PX = 16
+const CANVAS_MAX_PX = 7680
+
+function clampCanvasPx(n: number): number {
+  return Math.min(CANVAS_MAX_PX, Math.max(CANVAS_MIN_PX, Math.round(n)))
+}
+
 /**
  * The full `widget.json` manifest. `globalConfig`/`variantConfig` carry the
  * serve-time default values keyed by field `key`.
@@ -199,7 +207,10 @@ export function validateManifest(input: unknown): ValidateManifestResult {
       if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
         errors.push('`canvas` must have positive numeric `width` and `height`')
       } else {
-        canvas = { width: Math.round(width), height: Math.round(height) }
+        // Clamp to the same bounds the server's `normalizeCanvas` applies, so a
+        // hand-authored widget.json that passes `eeko build` renders at the
+        // exact size it validated against (no silent server-side resize).
+        canvas = { width: clampCanvasPx(width), height: clampCanvasPx(height) }
         if (typeof rawCanvas.preset === 'string' && rawCanvas.preset.length > 0) {
           canvas.preset = rawCanvas.preset
         }
