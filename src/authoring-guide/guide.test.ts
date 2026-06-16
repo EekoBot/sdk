@@ -66,6 +66,22 @@ describe('AUTHORING_GUIDE', () => {
     }
   })
 
+  it('carries the canvas size + layout guidance (parity with the monorepo Studio skill)', () => {
+    // CLI / handoff authors get this guide, not the Studio agent skill — so the
+    // canvas-size framework, transform rule, vw/vh ban and density pattern must
+    // live here too. Keep these phrases in lockstep with the monorepo
+    // authoring-components skill's drift test.
+    for (const phrase of [
+      '**Element** (the right answer',
+      'shrink the CANVAS',
+      'Never author ANY `transform`',
+      'never `vw`/`vh`',
+      'Density is the widget'
+    ]) {
+      expect(AUTHORING_GUIDE, `guide missing canvas-guidance phrase: ${phrase}`).toContain(phrase)
+    }
+  })
+
   it('has no unresolved template interpolations', () => {
     expect(AUTHORING_GUIDE).not.toContain('${')
   })
