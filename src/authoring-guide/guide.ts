@@ -154,7 +154,10 @@ Each entry in \`fields\`:
   The keys readable through a \`{ fromBehavior }\` binding are exactly: ${behaviorKeyList}.
   The widget's owner edits \`behavior\` values in Studio's config surface (they are not \`fields\` and need no field schema entry) — "configured display duration" means \`behavior.displayDuration\`, not a new field.
 - \`interactions\` is optional only for a genuinely static widget; for anything that reacts to an event it is where the behaviour goes (next sections).
-- \`canvas\` is the widget's **design surface** — \`{ "width": <px>, "height": <px>, "preset"?: "<id>" }\`. Orientation is derived from width vs height. Design your HTML/CSS as if the viewport is exactly \`width × height\`; the runtime zoom-to-fits it into the iframe / OBS browser source. Presets: \`landscape-1080\` (1920×1080, default), \`landscape-720\` (1280×720), \`vertical-1080\` (1080×1920, for TikTok / YouTube-Shorts), \`vertical-720\` (720×1280), \`square-1080\` (1080×1080), or custom \`width\`/\`height\` (omit \`preset\`) for a small self-contained widget. Optional — a widget without \`canvas\` is treated as 1920×1080 landscape.
+- \`canvas\` is the widget's **design surface** — \`{ "width": <px>, "height": <px>, "preset"?: "<id>" }\` (orientation is derived from width vs height). Design your HTML/CSS as if the viewport is exactly \`width × height\`; the runtime pins the root to those px and zoom-to-fits it into the iframe / OBS browser source. **The canvas size IS the OBS browser-source size**, so it decides how the streamer places the widget. Pick the surface that fits the build:
+  - **Element** (the right answer for almost every widget) — a small box sized to the widget itself + ~10% breathing room (an alert ≈ \`720×320\`, a goal/progress bar ≈ \`900×220\`, a countdown ≈ \`480×240\`, a poll ≈ \`600×440\`). The OBS source is then compact and MOVABLE, and the preview shows it crisp at ~1:1. Use a custom \`width\`/\`height\` (omit \`preset\`).
+  - **Screen** — the canvas IS the streamer's whole output: \`landscape-1080\` (1920×1080, default) / \`landscape-720\` (1280×720) / \`vertical-1080\` (1080×1920, TikTok / YouTube-Shorts) / \`vertical-720\` (720×1280) / \`square-1080\` (1080×1080). Use ONLY when the build spans or crosses the screen: a full-screen scene, a full-height chat feed, a full-width banner, or an alert that flies in across the scene.
+  - **Decision rule:** does it need the whole screen (full-bleed background, edge-to-edge motion, full-height feed)? → screen; otherwise → element. **If a small element looks tiny on a big canvas, shrink the CANVAS — never inflate the element to fill it** (inflating it is the #1 cause of huge / cut-off / off-centre widgets). A widget without \`canvas\` is treated as 1920×1080 landscape.
 - Keep the manifest in sync with the code: if any file references \`{myColor}\`, declare a field with \`key: "myColor"\` and mirror its default.`
 
 const TWO_PHASE_TOKENS = `## Two-phase token substitution {#two-phase-tokens}
@@ -204,7 +207,7 @@ Every element an action targets must carry a **stable \`data-eeko-el\` id** in \
 \`show\` / \`hide\` take an \`animation\` preset name: ${presetList}. The matching keyframes ship in Eeko's host page (\`eeko-*\`) — **never define \`@keyframes\` for them in your CSS**; just name the preset.
 
 - **\`hide\` plays the same preset keyframe in reverse.** \`hide\` + \`slide-up\` exits downward (the entrance undone); there is no separate exit-preset vocabulary.
-- **Presets animate \`opacity\` and \`transform\`.** Never author your own \`transform\` on an element a preset targets — it gets clobbered for the animation's duration. Center panels with auto margins or \`left\`/\`right\`, not \`translateX(-50%)\`.
+- **Presets animate \`opacity\` and \`transform\`.** Never author ANY \`transform\` (translate / scale / rotate) on an element a preset targets — it's clobbered for the animation, so the widget appears offset / half-off-screen / wrong-size then snaps into place. Center with flex/grid or auto margins (or \`left\`/\`right\` offsets), **not** \`transform: translate(-50%, -50%)\`; if you need a static transform, put it on a WRAPPER around the animated element.
 
 ### The op vocabulary
 
@@ -360,7 +363,9 @@ const STYLING_RULES = `## Styling rules {#styling-rules}
 
 - \`body { background: transparent }\` — always. Widgets render over the live stream in OBS; an opaque body covers it.
 - The CSS is iframe-scoped — no resets needed beyond your own \`* { margin: 0; padding: 0; box-sizing: border-box; }\`, no namespacing, no leakage in or out.
-- **Widgets are compact overlays, not full-screen scenery.** A small visible panel (typically 20–40% of canvas width), centered or corner-anchored. Never fill \`body\` with decorative backgrounds (skies, gradients, particle layers).
+- **Match the element to its canvas.** On an **element** canvas (a box sized to the widget) the content fills most of the box. On a **screen** canvas it's a compact region (≈20–40% of width) anchored where it belongs, and you must never fill \`body\` with decorative backgrounds (skies, gradients, particle layers) — they cover the live stream.
+- **Size in \`px\` (or % of the widget root) — never \`vw\`/\`vh\`.** The runtime pins the root to your canvas px and zoom-to-fits the whole thing; \`vw\`/\`vh\` resolve to the iframe viewport AFTER that scaling, not your design canvas, so they drift and break full-bleed layouts.
+- **Density is the widget's job, not the canvas's.** To make a chat or goal read "smaller"/denser, tune row height / font-size / line-clamp / max rows in CSS — don't shrink the canvas to fake it.
 - **Alerts (and mount-revealed countdowns) start hidden:** \`visibility: hidden\` on the panel in CSS; the \`show\` op reveals it (and \`hide\` re-hides it). Without this the alert is permanently visible and the entrance animation has nothing to play. Always-on widgets — chat, goals, polls, banners — are visible by default.
 - Do NOT define \`@keyframes\` for the animation presets (${presetList}) — the \`eeko-*\` keyframes live in Eeko's host page. Your CSS carries only the static look and the hidden/visible starting states.
 - Static styling values use Phase-1 \`{tokens}\` — \`{backgroundColor}\`, \`{accentColor}\`, \`{fontFamily}\` — each declared as a global field with its default mirrored in \`globalConfig\`.`
