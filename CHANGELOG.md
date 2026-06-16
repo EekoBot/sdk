@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-06-16
+
+### Changed
+- Authoring guide: canvas size guidance reframed around the **element vs screen** surface decision (size the canvas to the widget for a movable, crisp source; reserve the full screen for builds that span/cross it), with concrete per-type element sizes and a "shrink the canvas, don't inflate the element" rule.
+- Authoring guide: generalized the animation rule — keep *any* `transform` (translate / scale / rotate) off an element a `show`/`hide` preset targets (put it on a wrapper); added a `vw`/`vh` ban (size in px / % of the root); noted density/reflow is the widget's responsibility, not the canvas's.
+
 ## [0.8.0] - 2026-05-31
 
 ### Added
